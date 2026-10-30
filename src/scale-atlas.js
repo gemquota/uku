@@ -11,22 +11,22 @@ const SETS=[
 ];
 const rotate=(a,n)=>a.slice(n).concat(a.slice(0,n));
 const toIntervals=steps=>{let n=0;return[0,...steps.slice(0,-1).map(v=>(n+=v))];};
-const DATABASE=SETS.flatMap(set=>set.modes.map((name,i)=>{const steps=rotate(set.steps,i),intervals=toIntervals(steps);return{id:set.id+'-'+(i+1),collection:set.id,collectionName:set.name,family:set.family,degree:i+1,name,steps,intervals,cardinality:steps.length,signature:intervals.join('-')};}));
+export const SCALE_DATABASE=SETS.flatMap(set=>set.modes.map((name,i)=>{const steps=rotate(set.steps,i),intervals=toIntervals(steps);return{id:set.id+'-'+(i+1),collection:set.id,collectionName:set.name,family:set.family,degree:i+1,name,steps,intervals,cardinality:steps.length,signature:intervals.join('-')};}));
 export function scaleNotes(scale,root=0){return scale.intervals.map(i=>NOTES[(root+i)%12]);}
 export function scaleMidi(scale,root=0,octave=4){return scale.intervals.map(i=>12*(octave+1)+root+i);}
 export class ScaleAtlas{
-constructor(root,onPlay=()=>{}){this.root=root;this.onPlay=onPlay;this.selected=DATABASE[0];this.tonic=0;this.search=root.querySelector('#scale-atlas-search');this.rootSelect=root.querySelector('#scale-atlas-root');this.family=root.querySelector('#scale-atlas-family');this.grid=root.querySelector('#scale-atlas-grid');this.detail=root.querySelector('#scale-atlas-detail');this.search.addEventListener('input',()=>this.render());this.rootSelect.addEventListener('change',()=>{this.tonic=NOTES.indexOf(this.rootSelect.value);this.renderDetail();});this.family.addEventListener('change',()=>this.render());this.render();}
+constructor(root,onPlay=()=>{}){this.root=root;this.onPlay=onPlay;this.selected=SCALE_DATABASE[0];this.tonic=0;this.search=root.querySelector('#scale-atlas-search');this.rootSelect=root.querySelector('#scale-atlas-root');this.family=root.querySelector('#scale-atlas-family');this.grid=root.querySelector('#scale-atlas-grid');this.detail=root.querySelector('#scale-atlas-detail');this.search.addEventListener('input',()=>this.render());this.rootSelect.addEventListener('change',()=>{this.tonic=NOTES.indexOf(this.rootSelect.value);this.renderDetail();});this.family.addEventListener('change',()=>this.render());this.render();}
 render(){
 const q=this.search.value.toLowerCase().trim(),family=this.family.value;
 this.grid.replaceChildren();let row=0,serial=0;
 SETS.forEach(set=>{
 if(family!=='all'&&set.family!==family)return;
-const items=DATABASE.filter(scale=>scale.collection===set.id&&(!q||[scale.name,scale.collectionName,scale.family,scale.signature,scale.steps.join(' ')].join(' ').toLowerCase().includes(q)));
+const items=SCALE_DATABASE.filter(scale=>scale.collection===set.id&&(!q||[scale.name,scale.collectionName,scale.family,scale.signature,scale.steps.join(' ')].join(' ').toLowerCase().includes(q)));
 if(!items.length)return;row++;
 const label=document.createElement('div');label.className='scale-family-label';label.style.gridColumn='1';label.style.gridRow=String(row);label.textContent=set.name;this.grid.append(label);
 items.forEach(scale=>{
 serial++;const tile=document.createElement('button');tile.type='button';tile.className='scale-element'+(scale.id===this.selected.id?' selected':'');tile.title=scale.name+' · '+scale.collectionName;tile.style.gridColumn=String(scale.degree+1);tile.style.gridRow=String(row);
-const number=document.createElement('small');number.textContent=String(DATABASE.indexOf(scale)+1).padStart(2,'0');
+const number=document.createElement('small');number.textContent=String(SCALE_DATABASE.indexOf(scale)+1).padStart(2,'0');
 const symbol=document.createElement('strong');symbol.textContent=scale.name.split(/[\\s–-]/).map(x=>x[0]||'').join('').slice(0,3).toUpperCase();
 const name=document.createElement('span');name.textContent=scale.name;
 const count=document.createElement('em');count.textContent=scale.cardinality+' tones';
