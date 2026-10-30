@@ -38,7 +38,7 @@ The periodic atlas contains **344 families** under the implemented convention: n
 ## Composition and relationships
 
 - `src/composition-engine.js` provides seeded motif generation, transposition, retrograde, inversion, augmentation, diminution, project snapshots, and Standard MIDI File export.
-- `src/knowledge-graph.js` models typed musical nodes and weighted relationships, with neighbourhood and path queries.
+- `src/knowledge-graph.js` models typed musical nodes and weighted relationships, with neighbourhood and path queries; the workspace builds a mutation-neighbour graph for the 344 atlas families.\n- `src/harmony-engine.js` provides chord templates, chord identification, scale-contained chord discovery, and voice-leading cost estimates.\n- `src/acoustic-engine.js` compares equal temperament, just-major ratios, and Pythagorean ratios; it also exposes beat-frequency, harmonic-partial, and roughness estimators.
 - `src/visualization-engine.js` renders scale geometry, interval fingerprints, and harmonic partials from the underlying data.
 - `src/music-lab.js` integrates these capabilities into the existing application shell and mounts the persistent dock.
 
@@ -78,7 +78,7 @@ This sprint adds working foundations and integrated workflows, not a claim of in
 
 - The current oscillator instruments are useful for note and interval experiments, not realistic sampled piano/guitar/ukulele emulations.
 - Polyphonic analysis is spectral peak/chroma based. It does not yet provide source separation, robust chord transcription, calibrated timbre analysis, or confidence-calibrated scale recognition.
-- The harmonic spectrum display is an idealized partial series; it is not a measured spectrum of the currently selected synthesized timbre.
+- The harmonic spectrum display is an idealized partial series; it is not a measured spectrum of the currently selected synthesized timbre. Acoustic roughness and harmonicity values are simplified models, not perceptual ground truth.
 - Composition currently supports generated note events and MIDI export, not a full multitrack DAW, notation engraving, audio recording, or audio-file export.
 - The relationship graph exposes the graph model and scale-neighbour queries; a full navigable force-directed graph is still a separate visualization milestone.
 - The atlas is generated from canonical pitch-class data; scale names and culturally situated emotional associations are not inferred as objective facts.
