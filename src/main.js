@@ -8,13 +8,15 @@ import { ChordIdentifier } from './chord-identifier.js';
 import { StepSequencer } from './step-sequencer.js';
 import { Synthesizer } from './synthesizer.js';
 import { ScaleAtlas } from './scale-atlas.js';
+import { AudioTransport } from './audio-transport.js';
 
 const view = new TunerView();
 const signalVisualizer = new SignalVisualizer(document.querySelector('.signal-scopes'));
 const chordIdentifier = new ChordIdentifier();
 const chordsView = new ChordsView(chordIdentifier);
-const metronome = new Metronome();
-const stepSequencer = new StepSequencer();
+const transport = new AudioTransport();
+const metronome = new Metronome(transport);
+const stepSequencer = new StepSequencer(transport);
 const synthesizer = new Synthesizer(document.querySelector('#synth-dock'));
 const scaleAtlas = new ScaleAtlas(document.querySelector('#scale-atlas-section'), (notes) => synthesizer.playSequence(notes));
 const analysisSource = document.querySelector('#analysis-source');
