@@ -29,9 +29,9 @@ export const intervalVector = (notesOrMask) => {
 };
 export const canonicalRotation = (mask) => Math.min(...Array.from({length:12},(_,i)=>rotateMask(mask,i)));
 export const canonicalTnI = (mask) => Math.min(canonicalRotation(mask),canonicalRotation(invertMask(mask)));
-export const distinctModes = (mask) => [...new Set(Array.from({length:12},(_,i)=>rotateMask(mask,i)))];
+export const distinctModes = (mask) => { const notes=notesOf(mask); const modes=new Map(); for(const root of notes){const mode=maskOf(notes.map(n=>mod(n-root)));modes.set(mode,mode);} return [...modes.values()]; };
 export const symmetryOrder = (mask) => Array.from({length:12},(_,i)=>i).filter(i=>rotateMask(mask,i)===mask).length;
-export const transpositionCount = (mask) => distinctModes(mask).length;
+export const transpositionCount = (mask) => new Set(Array.from({length:12},(_,i)=>rotateMask(mask,i))).size;
 export const hammingDistance = (a,b) => {
   let x=a^b, count=0; while(x){count+=x&1;x>>>=1;} return count;
 };
@@ -42,7 +42,7 @@ export const jaccard = (a,b) => {
 export const popcount = (n) => { let c=0; while(n){n&=n-1;c++;} return c; };
 export const scaleProfile = (mask) => {
   const notes=notesOf(mask), intervals=intervalSequence(notes), vector=intervalVector(notes);
-  const modes=distinctModes(mask), symmetry=symmetryOrder(mask);
+  const modes=distinctModes(mask), transpositions=new Set(Array.from({length:12},(_,i)=>rotateMask(mask,i))).size, symmetry=symmetryOrder(mask);
   const consonant=vector[2]+vector[3]+vector[4]; // minor third, major third, fourth/fifth classes
   const dissonant=vector[0]+vector[1]+vector[5]; // semitone, whole tone, tritone
   const entropy=intervals.length ? -intervals.reduce((sum,x)=>sum+(x/12)*Math.log2(x/12),0) : 0;
