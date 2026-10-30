@@ -290,8 +290,8 @@ export class StepSequencer {
   async play() {
     try {
       await this.ensureAudio();
-      this.running = true;
       const origin = this.transport ? await this.transport.start() : this.audioContext.currentTime + 0.08;
+      this.running = true;
       const elapsedSteps = Math.max(0, Math.ceil((this.audioContext.currentTime - origin) / this.stepDuration - 1e-8));
       this.currentStep = elapsedSteps % this.stepsPerBar;
       this.nextStepTime = origin + elapsedSteps * this.stepDuration;
