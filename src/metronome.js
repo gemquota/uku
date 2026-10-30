@@ -1,5 +1,7 @@
 export class Metronome {
-  constructor() {
+  constructor(transport = null) {
+    this.transport = transport;
+    this.unsubscribeTransport = this.transport?.subscribe({ onStop: () => this.stop(false), onTempo: (bpm) => this.setTempo(bpm, false) });
     this.bpmInput = document.querySelector('#tempo-slider');
     this.bpmValue = document.querySelector('#tempo-value');
     this.startButton = document.querySelector('#metronome-toggle');
@@ -25,8 +27,9 @@ export class Metronome {
     this.updateDisplay();
   }
 
-  setTempo(bpm) {
+  setTempo(bpm, propagate = true) {
     this.bpm = Math.max(40, Math.min(220, Math.round(bpm)));
+    if (propagate) this.transport?.setTempo(this.bpm);
     this.updateDisplay();
   }
 
@@ -38,6 +41,11 @@ export class Metronome {
   }
 
   async ensureAudio() {
+    if (this.transport) {
+      await this.transport.ensureAudio();
+      this.audioContext = this.transport.context;
+      return;
+    }
     if (!this.audioContext) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) throw new Error('Web Audio is not available in this browser.');
@@ -49,9 +57,12 @@ export class Metronome {
   async start() {
     try {
       await this.ensureAudio();
+      const origin = this.transport ? await this.transport.start() : this.audioContext.currentTime + 0.08;
       this.running = true;
-      this.beatNumber = 0;
-      this.nextBeatTime = this.audioContext.currentTime + 0.08;
+      const beatDuration = 60 / this.bpm;
+      const elapsedBeats = Math.max(0, Math.ceil((this.audioContext.currentTime - origin) / beatDuration - 1e-8));
+      this.beatNumber = elapsedBeats % 4;
+      this.nextBeatTime = origin + elapsedBeats * beatDuration;
       this.startButton.textContent = 'Stop metronome';
       this.startButton.setAttribute('aria-pressed', 'true');
       this.hint.textContent = 'Follow the pulse. Adjust the tempo anytime.';
@@ -128,7 +139,8 @@ export class Metronome {
     }
   }
 
-  stop() {
+  stop(fromTransport = true) {
+    if (fromTransport && this.transport) { this.transport.stop(); return; }
     this.running = false;
     window.clearInterval(this.timer);
     this.timer = null;

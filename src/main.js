@@ -6,13 +6,20 @@ import { ChordsView } from './chords-view.js';
 import { Metronome } from './metronome.js';
 import { ChordIdentifier } from './chord-identifier.js';
 import { StepSequencer } from './step-sequencer.js';
+import { Synthesizer } from './synthesizer.js';
+import { ScaleAtlas } from './scale-atlas.js';
+import { AudioTransport } from './audio-transport.js';
 
 const view = new TunerView();
 const signalVisualizer = new SignalVisualizer(document.querySelector('.signal-scopes'));
 const chordIdentifier = new ChordIdentifier();
 const chordsView = new ChordsView(chordIdentifier);
-const metronome = new Metronome();
-const stepSequencer = new StepSequencer();
+const transport = new AudioTransport();
+const metronome = new Metronome(transport);
+const stepSequencer = new StepSequencer(transport);
+const synthesizer = new Synthesizer(document.querySelector('#synth-dock'));
+const scaleAtlas = new ScaleAtlas(document.querySelector('#scale-atlas-section'), (notes) => synthesizer.playSequence(notes));
+const analysisSource = document.querySelector('#analysis-source');
 const moduleButtons = [...document.querySelectorAll('[data-module]')];
 const modulePanels = [...document.querySelectorAll('[data-panel]')];
 const state = {
@@ -24,6 +31,8 @@ const state = {
   lastTuned: false,
   lastSoundAt: 0,
   audioContext: null,
+  inputSource: 'microphone',
+  startToken: 0,
 };
 let detector = null;
 
@@ -36,6 +45,8 @@ function selectModule(moduleName) {
   modulePanels.forEach((panel) => {
     panel.hidden = panel.dataset.panel !== moduleName;
   });
+  const synthDock = document.querySelector('#synth-dock');
+  synthDock?.classList.toggle('tab-hidden', synthDock.dataset.pinned !== 'true' && moduleName !== 'studio');
   if (!['tuner', 'analysis'].includes(moduleName) && state.isListening) void stopTuning();
 }
 
@@ -91,7 +102,7 @@ function renderAnalysis(metrics = {}) {
   analysisMetrics.hnr.textContent = Number.isFinite(metrics.hnrDb) ? `~${metrics.hnrDb.toFixed(1)} dB*` : '—';
   analysisMetrics.fft.textContent = metrics.fftSize ? `${metrics.fftSize} · ${metrics.resolutionHz.toFixed(2)} Hz/bin` : '—';
   analysisMetrics.rate.textContent = metrics.sampleRate ? `${(metrics.sampleRate / 1000).toFixed(1)} kHz · ${metrics.bufferSize} samples` : '—';
-  analysisMetrics.status.textContent = metrics.frequency ? 'LIVE · MICROPHONE' : state.isListening ? 'LISTENING · NO PITCH' : 'WAITING FOR INPUT';
+  analysisMetrics.status.textContent = metrics.frequency ? (state.inputSource === 'synth' ? 'LIVE · SYNTH' : 'LIVE · MICROPHONE') : state.isListening ? (state.inputSource === 'synth' ? 'SYNTH · NO PITCH' : 'LISTENING · NO PITCH') : 'WAITING FOR INPUT';
 }
 
 signalVisualizer.onMetrics = renderAnalysis;
@@ -199,9 +210,11 @@ function onPitch(frequency, quality = {}) {
 
 function syncAudioControls() {
   globalMicToggle.setAttribute('aria-pressed', String(state.isListening));
-  globalMicToggle.textContent = state.isListening ? 'Mic on' : 'Mic off';
-  globalMicToggle.setAttribute('aria-label', state.isListening ? 'Stop microphone input' : 'Start microphone input');
-  audioEngineStatus.textContent = state.isListening ? 'MICROPHONE LIVE' : 'AUDIO ENGINE READY';
+  globalMicToggle.textContent = state.isListening ? 'Input on' : 'Input off';
+  globalMicToggle.setAttribute('aria-label', state.isListening ? 'Stop audio analysis input' : 'Start audio analysis input');
+  audioEngineStatus.textContent = state.isListening
+    ? (state.inputSource === 'synth' ? 'SYNTH ANALYSIS LIVE' : 'MICROPHONE LIVE')
+    : 'AUDIO ENGINE READY';
 }
 
 function onSilence() {
@@ -211,12 +224,14 @@ function onSilence() {
   signalVisualizer.setTuning({ frequency: null, activeIndex: null, cents: 0, tuned: false, selectedIndex: state.selectedIndex, confidence: 0, stabilityCents: 0 });
   view.resetPitch();
   targetFrequency.textContent = `TARGET — Hz · A4 = ${state.referenceA4.toFixed(1)} Hz`;
-  view.setStatus('listening', 'LISTENING FOR A STRING');
+  view.setStatus('listening', state.inputSource === 'synth' ? 'LISTENING TO SYNTH OUTPUT' : 'LISTENING FOR A STRING');
 }
 
 async function stopTuning() {
-  await detector?.stop();
+  state.startToken += 1;
+  const activeDetector = detector;
   detector = null;
+  await activeDetector?.stop();
   state.isListening = false;
   state.lastTuned = false;
   view.setListening(false);
@@ -228,21 +243,28 @@ async function stopTuning() {
 }
 
 async function startTuning() {
+  const token = ++state.startToken;
   state.isListening = true;
   view.setStarting(true);
-  view.setStatus('listening', 'ASKING FOR MICROPHONE');
-  view.elements.micHint.textContent = 'Allow microphone access when your browser asks.';
-  detector = new PitchDetector(onPitch, onSilence, (timeData, frequencyData, sampleRate, audioInfo) => {
+  view.setStatus('listening', state.inputSource === 'synth' ? 'CONNECTING SYNTH OUTPUT' : 'ASKING FOR MICROPHONE');
+  view.elements.micHint.textContent = state.inputSource === 'synth'
+    ? 'Play a key on the docked synthesiser.'
+    : 'Allow microphone access when your browser asks.';
+  const nextDetector = new PitchDetector(onPitch, onSilence, (timeData, frequencyData, sampleRate, audioInfo) => {
     signalVisualizer.render(timeData, frequencyData, sampleRate, audioInfo);
   });
-  detector.fftSize = Number(fftSizeInput.value) || 4096;
+  nextDetector.fftSize = Number(fftSizeInput.value) || 4096;
+  detector = nextDetector;
   try {
-    await detector.start();
+    const stream = state.inputSource === 'synth' ? await synthesizer.getAnalysisStream() : null;
+    if (token !== state.startToken) { await nextDetector.stop(); return; }
+    await nextDetector.start(stream);
+    if (token !== state.startToken) { await nextDetector.stop(); return; }
     state.lastTuned = false;
     view.setListening(true);
     syncAudioControls();
-    if (state.soundEnabled && state.audioContext?.state === 'suspended') await state.audioContext.resume();
   } catch (error) {
+    if (token !== state.startToken) return;
     detector = null;
     state.isListening = false;
     syncAudioControls();
@@ -250,10 +272,10 @@ async function startTuning() {
       ? 'Microphone access is blocked. Allow it in browser settings, then try again.'
       : error.name === 'NotFoundError'
         ? 'No microphone found. Connect one and try again.'
-        : error.message || 'Could not start microphone. Try again.';
+        : error.message || 'Could not start audio input. Try again.';
     view.setError(message);
   } finally {
-    view.setStarting(false);
+    if (token === state.startToken) view.setStarting(false);
   }
 }
 
@@ -269,6 +291,14 @@ function toggleMicrophone() {
 
 view.onStartStop(toggleMicrophone);
 globalMicToggle.addEventListener('click', toggleMicrophone);
+analysisSource.value = loadPreference('uku-analysis-source', 'microphone');
+state.inputSource = ['microphone', 'synth'].includes(analysisSource.value) ? analysisSource.value : 'microphone';
+analysisSource.value = state.inputSource;
+analysisSource.addEventListener('change', () => {
+  state.inputSource = analysisSource.value;
+  savePreference('uku-analysis-source', state.inputSource);
+  if (state.isListening) void stopTuning().then(() => startTuning());
+});
 view.onTuningChange((key) => {
   state.tuningKey = key;
   state.selectedIndex = null;
@@ -299,6 +329,23 @@ view.onSoundToggle(async () => {
   if (state.audioContext.state === 'suspended') await state.audioContext.resume();
   state.soundEnabled = !state.soundEnabled;
   view.setSoundEnabled(state.soundEnabled);
+});
+
+document.querySelectorAll('[data-board-mode]').forEach((button) => {
+  button.addEventListener('click', () => {
+    const mode = button.dataset.boardMode;
+    const panel = document.querySelector('#theory-panel');
+    panel.dataset.mode = mode;
+    document.querySelectorAll('[data-board-mode]').forEach((item) => {
+      const active = item === button;
+      item.classList.toggle('active', active);
+      item.setAttribute('aria-pressed', String(active));
+    });
+    document.querySelector('#fretboard-section').hidden = mode === 'atlas';
+    document.querySelector('#identify-section').hidden = mode !== 'identify';
+    document.querySelector('#scale-section').hidden = mode !== 'scale';
+    document.querySelector('#scale-atlas-section').hidden = mode !== 'atlas';
+  });
 });
 
 view.setTuningOptions(state.tuningKey);

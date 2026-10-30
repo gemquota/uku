@@ -1,191 +1,20 @@
 export class PitchDetector {
-  constructor(onPitch, onSilence, onSignal = () => {}) {
-    this.onPitch = onPitch;
-    this.onSilence = onSilence;
-    this.onSignal = onSignal;
-    this.pitchHistory = [];
-    this.lastConfidence = 0;
-    this.fftSize = 4096;
-    this.context = null;
-    this.stream = null;
-    this.frame = null;
-    this.active = false;
-    this.lastDetectedAt = 0;
-    this.lastReportAt = 0;
-    this.buffer = null;
-    this.analyser = null;
-    this.source = null;
+  constructor(onPitch,onSilence,onSignal=()=>{}) {
+    Object.assign(this,{onPitch,onSilence,onSignal,fftSize:4096,context:null,stream:null,ownsStream:false,frame:null,active:false,buffer:null,analyser:null,source:null,pitchHistory:[],lastConfidence:0,lastDetectedAt:0,lastReportAt:0,lastSignalAt:0,startToken:0,worker:null,workerBusy:false,workerSequence:0});
+    try {this.worker=new Worker(new URL('./pitch-worker.js',import.meta.url),{type:'module'});this.worker.onmessage=e=>{this.workerBusy=false;if(this.active&&e.data.id===this.workerSequence)this.handlePitch(e.data.frequency,e.data.confidence);};this.worker.onerror=()=>{this.worker?.terminate();this.worker=null;this.workerBusy=false;};} catch {this.worker=null;}
   }
-
-  async start() {
-    if (!navigator.mediaDevices?.getUserMedia) {
-      throw new Error('Microphone access needs a supported browser and a secure connection (HTTPS).');
-    }
-    this.stream = await navigator.mediaDevices.getUserMedia({
-      audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
-    });
-    const AudioContextClass = window.AudioContext || window.webkitAudioContext;
-    if (!AudioContextClass) {
-      this.stream.getTracks().forEach((track) => track.stop());
-      this.stream = null;
-      throw new Error('This browser does not support live audio analysis.');
-    }
-    try {
-      this.context = new AudioContextClass();
-      await this.context.resume();
-      const source = this.context.createMediaStreamSource(this.stream);
-      this.source = source;
-      const analyser = this.context.createAnalyser();
-      this.analyser = analyser;
-      analyser.fftSize = this.fftSize;
-      analyser.smoothingTimeConstant = 0;
-      source.connect(analyser);
-      this.buffer = new Float32Array(analyser.fftSize);
-      this.frequencyBuffer = new Float32Array(analyser.frequencyBinCount);
-      this.active = true;
-      this.loop(analyser);
-    } catch (error) {
-      this.stream.getTracks().forEach((track) => track.stop());
-      this.stream = null;
-      await this.context?.close();
-      this.context = null;
-      throw error;
-    }
+  async start(inputStream=null) {
+    const token=++this.startToken;
+    if(!inputStream){if(!navigator.mediaDevices?.getUserMedia)throw new Error('Microphone access needs a supported browser and a secure connection (HTTPS).');this.stream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});this.ownsStream=true;if(token!==this.startToken){this.stream.getTracks().forEach(t=>t.stop());this.stream=null;return;}}
+    else{this.stream=inputStream;this.ownsStream=false;}
+    const AC=window.AudioContext||window.webkitAudioContext;if(!AC){if(this.ownsStream)this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;throw new Error('This browser does not support live audio analysis.');}
+    try{this.context=new AC();await this.context.resume();if(token!==this.startToken){await this.context.close();this.context=null;if(this.ownsStream)this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;return;}this.source=this.context.createMediaStreamSource(this.stream);this.analyser=this.context.createAnalyser();this.analyser.fftSize=this.fftSize;this.analyser.smoothingTimeConstant=0;this.source.connect(this.analyser);this.buffer=new Float32Array(this.analyser.fftSize);this.frequencyBuffer=new Float32Array(this.analyser.frequencyBinCount);this.active=true;this.lastDetectedAt=performance.now();this.lastSignalAt=0;this.loop();}
+    catch(error){if(this.ownsStream)this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;await this.context?.close();this.context=null;throw error;}
   }
-
-  loop(analyser) {
-    if (!this.active) return;
-    analyser.getFloatTimeDomainData(this.buffer);
-    analyser.getFloatFrequencyData(this.frequencyBuffer);
-    this.onSignal(this.buffer, this.frequencyBuffer, this.context.sampleRate, { fftSize: analyser.fftSize, bufferSize: this.buffer.length, binCount: analyser.frequencyBinCount });
-    const detectedFrequency = this.autoCorrelate(this.buffer, this.context.sampleRate);
-    const now = performance.now();
-    if (detectedFrequency > 0) {
-      this.lastDetectedAt = now;
-      if (now - this.lastReportAt > 65) {
-        this.lastReportAt = now;
-        this.pitchHistory.push(detectedFrequency);
-        if (this.pitchHistory.length > 40) this.pitchHistory.shift();
-        const mean = this.pitchHistory.reduce((sum, value) => sum + value, 0) / this.pitchHistory.length;
-        const variance = this.pitchHistory.reduce((sum, value) => sum + (value - mean) ** 2, 0) / this.pitchHistory.length;
-        const stabilityCents = this.pitchHistory.length > 1
-          ? 1200 * Math.log2(1 + Math.sqrt(variance) / mean)
-          : 0;
-        this.onPitch(detectedFrequency, {
-          confidence: this.lastConfidence,
-          stabilityCents,
-        });
-      }
-    } else if (now - this.lastDetectedAt > 850) {
-      this.onSilence();
-      this.lastDetectedAt = now;
-    }
-    this.frame = requestAnimationFrame(() => this.loop(analyser));
-  }
-
-  setFftSize(fftSize) {
-    const supported = [2048, 4096, 8192];
-    if (!supported.includes(fftSize)) throw new RangeError('FFT size must be 2048, 4096, or 8192 samples.');
-    this.fftSize = fftSize;
-    if (!this.active || !this.analyser) return;
-    this.analyser.fftSize = fftSize;
-    this.buffer = new Float32Array(this.analyser.fftSize);
-    this.frequencyBuffer = new Float32Array(this.analyser.frequencyBinCount);
-    this.resetPitchHistory();
-  }
-
-  resetPitchHistory() {
-    this.pitchHistory = [];
-    this.lastConfidence = 0;
-    this.lastReportAt = 0;
-  }
-
-  autoCorrelate(buffer, sampleRate) {
-    const downsample = 4;
-    const length = Math.floor(buffer.length / downsample);
-    const signal = new Float32Array(length);
-    let mean = 0;
-    let rootMeanSquare = 0;
-    for (let i = 0; i < length; i += 1) {
-      let sample = 0;
-      for (let offset = 0; offset < downsample; offset += 1) sample += buffer[i * downsample + offset];
-      signal[i] = sample / downsample;
-      mean += signal[i];
-      rootMeanSquare += signal[i] * signal[i];
-    }
-    rootMeanSquare = Math.sqrt(rootMeanSquare / length);
-    if (rootMeanSquare < 0.008) return -1;
-    mean /= length;
-    for (let i = 0; i < length; i += 1) signal[i] -= mean;
-
-    const effectiveRate = sampleRate / downsample;
-    const minLag = Math.max(2, Math.floor(effectiveRate / 1200));
-    const maxLag = Math.min(length - 2, Math.ceil(effectiveRate / 55));
-    if (!this.difference || this.difference.length <= maxLag) {
-      this.difference = new Float32Array(maxLag + 1);
-      this.normalizedDifference = new Float32Array(maxLag + 1);
-    }
-    let cumulativeDifference = 0;
-    const comparisonLength = length - maxLag;
-    for (let lag = 1; lag <= maxLag; lag += 1) {
-      let difference = 0;
-      for (let i = 0; i < comparisonLength; i += 1) {
-        const delta = signal[i] - signal[i + lag];
-        difference += delta * delta;
-      }
-      this.difference[lag] = difference;
-      cumulativeDifference += difference;
-      this.normalizedDifference[lag] = lag * difference / cumulativeDifference;
-    }
-
-    const threshold = 0.16;
-    let bestLag = -1;
-    for (let lag = minLag; lag < maxLag; lag += 1) {
-      if (this.normalizedDifference[lag] < threshold) {
-        while (lag + 1 < maxLag && this.normalizedDifference[lag + 1] < this.normalizedDifference[lag]) lag += 1;
-        bestLag = lag;
-        break;
-      }
-    }
-    if (bestLag < 0) {
-      let bestDifference = Infinity;
-      for (let lag = minLag; lag <= maxLag; lag += 1) {
-        if (this.normalizedDifference[lag] < bestDifference) {
-          bestDifference = this.normalizedDifference[lag];
-          bestLag = lag;
-        }
-      }
-      if (bestDifference > 0.3) return -1;
-    }
-
-    // Prefer the longer period when a strong overtone masks the fundamental.
-    while (bestLag * 2 < maxLag && this.normalizedDifference[bestLag * 2] < threshold
-      && this.normalizedDifference[bestLag * 2] < this.normalizedDifference[bestLag] * 0.8) {
-      bestLag *= 2;
-    }
-    this.lastConfidence = Math.max(0, Math.min(1, 1 - this.normalizedDifference[bestLag]));
-    const left = this.normalizedDifference[Math.max(minLag, bestLag - 1)];
-    const center = this.normalizedDifference[bestLag];
-    const right = this.normalizedDifference[Math.min(maxLag, bestLag + 1)];
-    const curvature = left - 2 * center + right;
-    const correction = curvature ? 0.5 * (left - right) / curvature : 0;
-    return effectiveRate / (bestLag + correction);
-  }
-
-  async stop() {
-    this.active = false;
-    if (this.frame) cancelAnimationFrame(this.frame);
-    this.frame = null;
-    this.stream?.getTracks().forEach((track) => track.stop());
-    this.stream = null;
-    if (this.context && this.context.state !== 'closed') await this.context.close();
-    this.context = null;
-    this.buffer = null;
-    this.frequencyBuffer = null;
-    this.difference = null;
-    this.normalizedDifference = null;
-    this.analyser = null;
-    this.source = null;
-    this.resetPitchHistory();
-  }
+  loop(){if(!this.active||!this.analyser)return;this.analyser.getFloatTimeDomainData(this.buffer);this.analyser.getFloatFrequencyData(this.frequencyBuffer);const now=performance.now();if(now-this.lastSignalAt>=40){this.lastSignalAt=now;this.onSignal(this.buffer,this.frequencyBuffer,this.context.sampleRate,{fftSize:this.analyser.fftSize,bufferSize:this.buffer.length,binCount:this.analyser.frequencyBinCount});}if(now-this.lastReportAt>=70&&!this.workerBusy){this.lastReportAt=now;if(this.worker){this.workerBusy=true;this.workerSequence++;const samples=this.buffer.slice();this.worker.postMessage({samples,sampleRate:this.context.sampleRate,id:this.workerSequence},[samples.buffer]);}else{const r=this.detectYin(this.buffer,this.context.sampleRate);this.handlePitch(r.frequency,r.confidence);}}if(now-this.lastDetectedAt>850){this.onSilence();this.lastDetectedAt=now;}this.frame=requestAnimationFrame(()=>this.loop());}
+  handlePitch(frequency,confidence=0){if(!(frequency>0)||confidence<.70)return;this.lastDetectedAt=performance.now();this.pitchHistory.push(frequency);if(this.pitchHistory.length>9)this.pitchHistory.shift();const sorted=[...this.pitchHistory].sort((a,b)=>a-b),median=sorted[Math.floor(sorted.length/2)];const deviations=this.pitchHistory.map(v=>Math.abs(1200*Math.log2(v/median))).sort((a,b)=>a-b);this.lastConfidence=confidence;this.onPitch(median,{confidence,stabilityCents:deviations[Math.floor(deviations.length/2)]||0});}
+  detectYin(buffer,sampleRate){const d=4,n=Math.floor(buffer.length/d),x=new Float32Array(n);let mean=0,power=0;for(let i=0;i<n;i++){let v=0;for(let j=0;j<d;j++)v+=buffer[i*d+j];v/=d;x[i]=v;mean+=v;power+=v*v;}if(Math.sqrt(power/n)<.006)return{frequency:-1,confidence:0};mean/=n;for(let i=0;i<n;i++)x[i]-=mean;const rate=sampleRate/d,min=Math.max(2,Math.floor(rate/1500)),max=Math.min(n-2,Math.ceil(rate/45)),cmnd=new Float32Array(max+1);let sum=0;for(let lag=1;lag<=max;lag++){let diff=0;for(let i=0;i<n-max;i++){const v=x[i]-x[i+lag];diff+=v*v;}sum+=diff;cmnd[lag]=sum?lag*diff/sum:1;}let candidate=-1,best=Infinity;for(let lag=min+1;lag<max-1;lag++)if(cmnd[lag]<cmnd[lag-1]&&cmnd[lag]<=cmnd[lag+1]&&cmnd[lag]<best){candidate=lag;best=cmnd[lag];if(best<.14)break;}if(candidate<0||best>.34)return{frequency:-1,confidence:0};for(let k=2;k<=3;k++){const longer=candidate*k;if(longer<max&&cmnd[longer]<best*.78){candidate=longer;best=cmnd[longer];}}const a=cmnd[candidate-1],b=cmnd[candidate],c=cmnd[candidate+1],curve=a-2*b+c,offset=Math.max(-.5,Math.min(.5,curve?.5*(a-c)/curve:0));return{frequency:rate/(candidate+offset),confidence:Math.max(0,Math.min(1,1-b))};}
+  setFftSize(size){if(![2048,4096,8192].includes(size))throw new RangeError('FFT size must be 2048, 4096, or 8192 samples.');this.fftSize=size;if(this.analyser){this.analyser.fftSize=size;this.buffer=new Float32Array(size);this.frequencyBuffer=new Float32Array(this.analyser.frequencyBinCount);this.resetPitchHistory();}}
+  resetPitchHistory(){this.pitchHistory=[];this.lastConfidence=0;this.lastReportAt=0;this.lastDetectedAt=performance.now();}
+  async stop(){this.startToken++;this.active=false;if(this.frame)cancelAnimationFrame(this.frame);this.frame=null;if(this.ownsStream)this.stream?.getTracks().forEach(t=>t.stop());this.stream=null;this.ownsStream=false;if(this.context&&this.context.state!=='closed')await this.context.close();this.context=null;this.buffer=null;this.frequencyBuffer=null;this.analyser=null;this.source=null;this.worker?.terminate();this.worker=null;this.workerBusy=false;this.resetPitchHistory();}
 }

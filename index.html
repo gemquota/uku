@@ -141,6 +141,7 @@
             <button type="button" class="mode-chip active" data-board-mode="chord" aria-pressed="true">Chord tones</button>
             <button type="button" class="mode-chip" data-board-mode="identify" aria-pressed="false">Identify</button>
             <button type="button" class="mode-chip" data-board-mode="scale" aria-pressed="false">Scale</button>
+            <button type="button" class="mode-chip" data-board-mode="atlas" aria-pressed="false">Scale atlas</button>
           </div>
           <section class="workspace-section fretboard-section" id="fretboard-section" aria-labelledby="fretboard-heading">
             <h3 class="workspace-panel-heading" id="fretboard-heading">13-FRET MAP <span id="fretboard-caption">All positions in the selected chord</span></h3>
@@ -160,6 +161,14 @@
               <label>SCALE<select id="scale-type"><option value="major">Major</option><option value="minor">Natural minor</option><option value="major-pentatonic">Major pentatonic</option><option value="minor-pentatonic">Minor pentatonic</option><option value="blues">Blues</option><option value="dorian">Dorian</option></select></label>
             </div>
             <p class="scale-notes" id="scale-notes" aria-live="polite"></p>
+          </section>
+          <section class="workspace-section scale-atlas-section" id="scale-atlas-section" aria-label="Periodic table of musical scales" hidden>
+            <div class="scale-atlas-toolbar">
+              <label>SEARCH <input id="scale-atlas-search" type="search" placeholder="Scale, mode, interval pattern…" /></label>
+              <label>TONIC <select id="scale-atlas-root"><option>C</option><option>C♯</option><option>D</option><option>D♯</option><option>E</option><option>F</option><option>F♯</option><option>G</option><option>G♯</option><option>A</option><option>A♯</option><option>B</option></select></label>
+              <label>FAMILY <select id="scale-atlas-family"><option value="all">All families</option><option value="Diatonic">Diatonic</option><option value="Melodic minor">Melodic minor</option><option value="Harmonic minor">Harmonic minor</option><option value="Harmonic major">Harmonic major</option><option value="Double harmonic">Double harmonic</option><option value="Pentatonic">Pentatonic</option><option value="Symmetrical">Symmetrical</option></select></label>
+            </div>
+            <div class="scale-atlas-layout"><div class="scale-atlas-grid" id="scale-atlas-grid" aria-label="Scale elements"></div><section class="scale-atlas-detail" id="scale-atlas-detail" aria-live="polite"></section></div>
           </section>
         </section>
 
@@ -237,6 +246,21 @@
         <span>TAKE IT SLOW. SOUND GOOD.</span>
       </footer>
     </div>
+    <aside class="synth-dock" id="synth-dock" data-edge="right" data-pinned="true" aria-label="Docked synthesiser">
+      <header class="synth-dock-header"><div><span class="eyebrow">INSTRUMENT ENGINE</span><strong>Uku <span>synth.</span></strong></div><div class="synth-dock-actions"><button type="button" id="synth-pin" aria-pressed="true">Pinned</button><button type="button" id="synth-collapse">Minimise</button></div></header>
+      <div class="synth-dock-body">
+        <div class="synth-controls">
+          <label>INSTRUMENT<select id="synth-instrument"><option value="ukulele">Ukulele · plucked</option><option value="guitar">Guitar · plucked</option><option value="piano">Piano · additive</option></select></label>
+          <label>OCTAVE<select id="synth-octave"><option value="-2">−2</option><option value="-1">−1</option><option value="0" selected>0</option><option value="1">+1</option><option value="2">+2</option></select></label>
+          <label>ANALYSIS INPUT<select id="analysis-source"><option value="microphone">Microphone</option><option value="synth">Synthesiser output</option></select></label>
+          <label class="synth-volume">LEVEL<input id="synth-volume" type="range" min="0" max="1" step="0.01" value="0.55" /></label>
+          <button type="button" class="secondary-button" id="synth-all-notes-off">All notes off</button>
+        </div>
+        <div class="synth-keyboard" aria-label="Two octave synthesiser keyboard"><div class="synth-white-keys"></div><div class="synth-black-keys"></div></div>
+        <p class="synth-help">Touch keys or use A–K. Choose Synthesiser as the analysis input, then start the tuner to analyse its output.</p>
+      </div>
+      <div class="synth-edge-controls" aria-label="Dock position"><button type="button" data-dock-edge="left">Left</button><button type="button" data-dock-edge="right">Right</button><button type="button" data-dock-edge="bottom">Bottom</button></div>
+    </aside>
     <div class="ambient ambient-one" aria-hidden="true"></div>
     <div class="ambient ambient-two" aria-hidden="true"></div>
   </body>

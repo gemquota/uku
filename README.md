@@ -20,14 +20,14 @@ The app is dependency-free and uses browser ES modules:
 - `src/tunings.js` contains presets, note conversion, and frequency-based string matching.
 - `src/tuner-view.js` renders the tuning interface; `src/signal-visualizer.js` draws live waveform, spectrum, spectrogram, derivative, and tuning-map scopes, and derives RMS/peak, FFT resolution, sample rate, and relative spectral estimates.
 - `src/chords.js` generates chord voicings; `src/chords-view.js` provides catalog search, filters, and fingering diagrams; `src/chord-identifier.js` ranks fretboard selections by estimated chord-tone coverage.
-- `src/metronome.js` handles tempo, tap-tempo, scheduled audio clicks, and visual beats; `src/step-sequencer.js` provides layered drum and pitched tracks with synthesized Web Audio kits.
+- `src/audio-transport.js` owns the shared Web Audio clock and tempo; `src/metronome.js` and `src/step-sequencer.js` schedule their events against that common transport. The sequencer provides layered drum and pitched tracks with synthesized Web Audio kits.
 - `index.html` is the app shell; `styles.css` owns the responsive visual system.
 
 The five workspaces fit a fixed viewport and use compact responsive layouts rather than page scrolling. Tuner and Analysis share microphone capture. Theory provides chord-tone mapping, note-to-chord matching, and six scale formulas over a 13-fret map; chord-identification rankings are theory-fit estimates, not probabilities. Library contains a searchable, filterable 108-voicing catalog with explicit pagination; Studio combines the metronome with a layered step sequencer. The Analysis panel reports digital-full-scale-relative amplitude and relative SNR/HNR estimates only: browser microphone gain and device response are uncalibrated, so these values are not laboratory measurements. Seven palettes support light and dark appearances. The sequencer uses synthesized drum timbres (not sampled or affiliated Roland sound banks) and oscillator-based bass, guitar, and piano layers.
 
 ## Product direction
 
-Uku prioritizes instrument-grade tuning, measurements derived from live microphone samples, expressive visualizations driven by the captured signal, and compact tools for experienced musicians. The current Theory workspace is a useful fretboard/chord/scale tool, not yet the larger relational music-theory knowledge graph; MIDI, recording/export, and a broader accompaniment engine remain future work.
+Uku prioritizes instrument-grade tuning, measurements derived from live microphone samples, expressive visualizations driven by the captured signal, and compact tools for experienced musicians. The Theory workspace includes a periodic-table-style scale atlas indexed by modal collection, interval pattern, and cardinality. A persistent docked synthesiser provides plucked-string ukulele/guitar voices and an additive piano voice; its output can be selected as the tuner/analysis input and passes through the same pitch and signal-analysis path as microphone audio. These are procedural synthesis models, not sampled instrument recordings. MIDI, multitrack recording/export, and a deeper relational theory graph remain future work.
 
 ## Run locally
 
@@ -37,7 +37,7 @@ Serve the project root over HTTP (microphone access is restricted on insecure or
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000>. Allow microphone access to tune; the metronome audio starts after you press its start button.
+Then open <http://localhost:8000>. Allow microphone access to tune, or choose Synthesiser as the analysis input and play the docked keyboard. The metronome and sequencer share a tempo and audio clock. Run `npm test` to execute the pitch-detection, scale-theory, and transport checks.
 
 ## Deploy to GitHub Pages
 

@@ -29,7 +29,9 @@ const INSTRUMENTS = {
 const clamp = (value, minimum, maximum) => Math.max(minimum, Math.min(maximum, value));
 
 export class StepSequencer {
-  constructor() {
+  constructor(transport = null) {
+    this.transport = transport;
+    this.unsubscribeTransport = this.transport?.subscribe({ onStop: () => this.stop(false), onTempo: (bpm) => this.setTempo(bpm, false) });
     this.root = document.querySelector('#sequencer-panel');
     this.tracksRoot = document.querySelector('#sequencer-tracks');
     this.trackPrevious = document.querySelector('#sequencer-track-prev');
@@ -68,10 +70,7 @@ export class StepSequencer {
     this.addMelodicButton.addEventListener('click', () => this.addTrack(this.instrumentInput.value));
     this.tracksRoot.addEventListener('click', (event) => this.onGridClick(event));
     this.tracksRoot.addEventListener('pointerdown', (event) => this.startNoteDrag(event));
-    this.bpmInput.addEventListener('input', () => {
-      this.bpmInput.value = String(clamp(Number(this.bpmInput.value) || 96, 40, 220));
-      this.updateStatus();
-    });
+    this.bpmInput.addEventListener('input', () => this.setTempo(this.bpmInput.value));
     this.meterTop.addEventListener('change', () => this.render());
     this.meterBottom.addEventListener('change', () => this.render());
     this.snapInput.addEventListener('change', () => this.render());
@@ -80,6 +79,13 @@ export class StepSequencer {
     this.addTrack('drums');
     this.addTrack('Bass');
     this.addTrack('Piano');
+  }
+
+  setTempo(value, propagate = true) {
+    const bpm = clamp(Number(value) || 96, 40, 220);
+    this.bpmInput.value = String(bpm);
+    if (propagate) this.transport?.setTempo(bpm);
+    this.updateStatus();
   }
 
   get stepsPerBar() {
@@ -263,10 +269,16 @@ export class StepSequencer {
   }
 
   async ensureAudio() {
+    if (this.transport) {
+      await this.transport.ensureAudio();
+      this.audioContext = this.transport.context;
+    }
     if (!this.audioContext) {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) throw new Error('Web Audio is unavailable in this browser.');
       this.audioContext = new AudioContextClass();
+    }
+    if (!this.noiseBuffer) {
       const buffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate, this.audioContext.sampleRate);
       const samples = buffer.getChannelData(0);
       for (let index = 0; index < samples.length; index += 1) samples[index] = Math.random() * 2 - 1;
@@ -278,10 +290,12 @@ export class StepSequencer {
   async play() {
     try {
       await this.ensureAudio();
+      const origin = this.transport ? await this.transport.start() : this.audioContext.currentTime + 0.08;
       this.running = true;
-      this.currentStep = 0;
-      this.nextStepTime = this.audioContext.currentTime + 0.08;
-      this.beatOrigin = this.nextStepTime;
+      const elapsedSteps = Math.max(0, Math.ceil((this.audioContext.currentTime - origin) / this.stepDuration - 1e-8));
+      this.currentStep = elapsedSteps % this.stepsPerBar;
+      this.nextStepTime = origin + elapsedSteps * this.stepDuration;
+      this.beatOrigin = origin;
       this.lastScheduledStep = -1;
       this.playButton.textContent = 'Stop';
       this.playButton.setAttribute('aria-pressed', 'true');
@@ -401,7 +415,8 @@ export class StepSequencer {
 
   get bpmInputValue() { return Number(this.bpmInput.value); }
 
-  stop() {
+  stop(fromTransport = true) {
+    if (fromTransport && this.transport) { this.transport.stop(); return; }
     this.running = false;
     window.clearInterval(this.timer);
     this.timer = null;
