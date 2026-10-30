@@ -4,7 +4,7 @@ export const TUNING_SYSTEMS=Object.freeze({
   "Pythagorean":{kind:"ratio",ratios:[1,256/243,9/8,32/27,81/64,4/3,729/512,3/2,128/81,27/16,16/9,243/128]}
 });
 export class AcousticEngine{
-  frequency(midi,{system="12-TET",a4=440,tonic=0}={}){const tuning=TUNING_SYSTEMS[system]||TUNING_SYSTEMS["12-TET"];if(tuning.kind==="equal")return midiFrequency(midi,a4);const pc=mod(midi-tonic),octave=Math.floor((midi-tonic)/12);return a4*tuning.ratios[pc]*2**(octave+(tonic-9)/12);}
+  frequency(midi,{system="12-TET",a4=440,tonic=0}={}){const tuning=TUNING_SYSTEMS[system]||TUNING_SYSTEMS["12-TET"];if(tuning.kind==="equal")return midiFrequency(midi,a4);const pc=mod(midi-tonic),octave=Math.floor((midi-tonic)/12)-5,tonicFrequency=midiFrequency(60+tonic,a4);return tonicFrequency*tuning.ratios[pc]*2**octave;}
   compareInterval(fromMidi,toMidi,system="12-TET"){const a=this.frequency(fromMidi,{system}),b=this.frequency(toMidi,{system}),ratio=b/a,semitones=12*Math.log2(ratio);return {fromHz:a,toHz:b,ratio,cents:1200*Math.log2(ratio),equalTemperedCents:(toMidi-fromMidi)*100,beatHz:Math.abs(b-a),semitones};}
   partials(fundamental,count=24){return Array.from({length:count},(_,i)=>({harmonic:i+1,frequency:fundamental*(i+1),relativeAmplitude:1/(i+1),db:20*Math.log10(1/(i+1))}));}
   beatFrequency(a,b){return Math.abs(a-b);}
