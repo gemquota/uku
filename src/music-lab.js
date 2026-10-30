@@ -1,0 +1,102 @@
+import {PITCHES, SCALE_TEMPLATES, maskOf, notesOf, scaleProfile, allScaleFamilies, rotateMask, compareScales, identifyScales, midiFrequency, noteName, mod} from "./music-theory.js";
+import {SynthesisEngine} from "./synthesis-engine.js";
+import {CompositionEngine} from "./composition-engine.js";
+import {MusicalKnowledgeGraph} from "./knowledge-graph.js";
+import {MusicVisualizations} from "./visualization-engine.js";
+
+const el=(tag,attrs={},children=[])=>{const n=document.createElement(tag);for(const [k,v] of Object.entries(attrs)){if(k==="class")n.className=v;else if(k==="text")n.textContent=v;else if(k.startsWith("on"))n.addEventListener(k.slice(2).toLowerCase(),v);else n.setAttribute(k,v);}for(const child of children)n.append(child);return n;};
+const esc=(s)=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+export class UkuMusicLab {
+  constructor(){
+    this.families=allScaleFamilies();this.selectedMask=maskOf(SCALE_TEMPLATES.Major);this.compareMask=maskOf(SCALE_TEMPLATES["Natural minor"]);this.root=0;this.modeIndex=0;this.filter="";this.cardinality="all";this.engine=null;this.composition=new CompositionEngine();this.graph=new MusicalKnowledgeGraph();this.visuals=new MusicVisualizations();this.micStream=null;this.micContext=null;this.micAnalyser=null;this.worker=null;this.analysisFrame=null;this.lastNotes=[];this.dockLocked=false;this.dockCollapsed=false;this.saved=[];
+    this.mount();this.renderAll();this.restoreDock();
+  }
+  mount(){
+    const nav=document.querySelector(".module-nav");if(!nav||document.querySelector('[data-module="universe"]'))return;
+    const button=el("button",{class:"module-link",type:"button","data-module":"universe","aria-pressed":"false"},[el("span",{class:"module-glyph",text:"✳"}),document.createTextNode("Universe")]);nav.append(button);
+    const main=document.querySelector("main");
+    this.panel=el("section",{id:"universe-panel",class:"tool-panel module-panel uku-universe", "data-panel":"universe","aria-label":"Musical universe"});
+    this.panel.innerHTML=this.panelMarkup();main.append(this.panel);
+    this.dock=el("aside",{class:"uku-synth-dock","aria-label":"Persistent synthesiser"});this.dock.innerHTML=this.dockMarkup();document.body.append(this.dock);
+    const style=el("link",{rel:"stylesheet",href:"./styles/music-lab.css"});document.head.append(style);
+    button.addEventListener("click",()=>this.selectWorkspace("universe"));
+    document.querySelectorAll("[data-module]").forEach(b=>b.addEventListener("click",()=>{if(b.dataset.module!=="universe")this.persistDock();}));
+    this.bindPanel();this.bindDock();
+    this.panel.querySelector("#uku-scale-search").addEventListener("input",e=>{this.filter=e.target.value;this.renderTable();});
+    this.panel.querySelector("#uku-cardinality").addEventListener("change",e=>{this.cardinality=e.target.value;this.renderTable();});
+    this.panel.querySelector("#uku-family-list").addEventListener("click",e=>{const item=e.target.closest("[data-mask]");if(item)this.selectScale(Number(item.dataset.mask));});
+    this.panel.querySelector("#uku-note-grid").addEventListener("click",e=>{const b=e.target.closest("[data-note]");if(!b)return;const bit=1<<Number(b.dataset.note);this.selectedMask^=bit;this.selectedMask|=1;this.renderAll();});
+    this.panel.querySelector("#uku-audition").addEventListener("click",()=>this.auditionScale());
+    this.panel.querySelector("#uku-mutate").addEventListener("click",()=>this.mutateScale());
+    this.panel.querySelector("#uku-compare").addEventListener("click",()=>this.compareSelected());
+    this.panel.querySelector("#uku-mode-prev").addEventListener("click",()=>this.rotateMode(-1));
+    this.panel.querySelector("#uku-mode-next").addEventListener("click",()=>this.rotateMode(1));
+    this.panel.querySelector("#uku-identify").addEventListener("click",()=>this.identifyFromNotes());
+    this.panel.querySelector("#uku-generate").addEventListener("click",()=>this.generateMotif());
+    this.panel.querySelector("#uku-transform").addEventListener("change",e=>{this.transform=e.target.value;});
+    this.panel.querySelector("#uku-export-midi").addEventListener("click",()=>this.exportMidi());
+    this.panel.querySelector("#uku-save").addEventListener("click",()=>this.saveProject());
+    this.panel.querySelector("#uku-mic").addEventListener("click",()=>this.toggleMic());
+    this.panel.querySelector("#uku-search-graph").addEventListener("input",e=>this.searchGraph(e.target.value));
+  }
+  panelMarkup(){return `
+    <header class="workspace-title"><div><p class="eyebrow">MATHEMATICAL MUSIC ATLAS · 12-TONE UNIVERSE</p><h2>Musical <span>universe.</span></h2></div><span class="analysis-live" id="uku-family-count">COMPUTING FAMILIES</span></header>
+    <div class="uku-toolbar"><label>FIND A SCALE <input id="uku-scale-search" type="search" placeholder="Name, notes, interval pattern…" /></label><label>CARDINALITY <select id="uku-cardinality"><option value="all">All collections</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option><option>9</option><option>10</option><option>11</option><option>12</option></select></label><span class="uku-count" id="uku-visible-count"></span></div>
+    <div class="uku-layout">
+      <section class="uku-pane uku-catalog"><div class="uku-pane-head"><h3>FAMILY PERIODIC TABLE</h3><span>SELECT AN ELEMENT</span></div><div class="uku-family-list" id="uku-family-list" role="listbox" aria-label="Scale families"></div></section>
+      <section class="uku-pane uku-detail"><div class="uku-pane-head"><h3 id="uku-scale-name">Major · C</h3><span id="uku-scale-family">SCALE FAMILY</span></div>
+        <div class="uku-visual-grid"><figure><figcaption>CIRCLE OF FIFTHS · GEOMETRIC PORTRAIT</figcaption><canvas id="uku-circle" aria-label="Circle of fifths scale geometry"></canvas></figure><figure><figcaption>INTERVAL-CLASS FINGERPRINT</figcaption><canvas id="uku-fingerprint"></canvas></figure></div>
+        <div class="uku-metrics" id="uku-metrics"></div>
+        <div class="uku-mode-row"><button id="uku-mode-prev" class="secondary-button" type="button">‹ MODE</button><strong id="uku-mode-label">IONIAN</strong><button id="uku-mode-next" class="secondary-button" type="button">MODE ›</button><button id="uku-audition" class="primary-button" type="button">▶ AUDITION</button></div>
+        <div class="uku-notes" id="uku-note-grid" aria-label="Edit scale pitch classes"></div>
+        <div class="uku-actions"><button class="secondary-button" id="uku-mutate" type="button">Mutate one note</button><button class="secondary-button" id="uku-compare" type="button">Compare with minor</button><button class="secondary-button" id="uku-identify" type="button">Identify from selected notes</button></div>
+        <div class="uku-result" id="uku-result" aria-live="polite">Select notes or a scale family to inspect its structure.</div>
+      </section>
+      <section class="uku-pane uku-lab"><div class="uku-pane-head"><h3>COMPOSITION & DISCOVERY</h3><span>EXPERIMENTAL BENCH</span></div>
+        <div class="uku-control-block"><h4>GENERATIVE MOTIF</h4><div class="uku-inline"><button id="uku-generate" class="primary-button" type="button">Generate motif</button><select id="uku-transform"><option value="transpose">Transpose +7</option><option value="retrograde">Retrograde</option><option value="invert">Invert</option><option value="augment">Augment</option><option value="diminish">Diminish</option></select></div><div id="uku-motif" class="uku-motif">No motif generated yet.</div><div class="uku-inline"><button id="uku-save" class="secondary-button" type="button">Save study</button><button id="uku-export-midi" class="secondary-button" type="button">Export MIDI</button></div></div>
+        <div class="uku-control-block"><h4>HARMONIC SPECTRUM</h4><canvas id="uku-harmonics" class="uku-harmonics"></canvas><p class="uku-muted">Idealized harmonic partials of the selected root. Actual timbre is instrument- and performance-dependent.</p></div>
+        <div class="uku-control-block"><h4>KNOWLEDGE GRAPH SEARCH</h4><input id="uku-search-graph" type="search" placeholder="Find related scale structures…" /><div id="uku-graph-results" class="uku-graph-results">Scale relationships are calculated on demand.</div></div>
+      </section>
+    </div>`;}
+  dockMarkup(){return `
+    <div class="uku-dock-head"><div><strong>UKU SYNTH</strong><span id="uku-synth-status">READY · AUDIO UNLOCKS ON FIRST NOTE</span></div><div class="uku-dock-actions"><button id="uku-dock-collapse" type="button" aria-label="Collapse synthesiser">−</button><button id="uku-dock-lock" type="button" aria-pressed="false">UNLOCKED</button></div></div>
+    <div class="uku-dock-controls"><label>INSTRUMENT <select id="uku-instrument"><option value="piano">Piano</option><option value="guitar">Guitar</option><option value="ukulele">Ukulele</option><option value="synth">Synth</option></select></label><label>OCTAVE <select id="uku-octave"><option value="2">2</option><option value="3" selected>3</option><option value="4">4</option><option value="5">5</option></select></label><label>LEVEL <input id="uku-volume" type="range" min="0" max="1" step=".01" value=".7" /></label><button id="uku-synth-stop" type="button">STOP ALL</button><button id="uku-mic" type="button">MIC INPUT OFF</button></div>
+    <div class="uku-keyboard" id="uku-keyboard" aria-label="Two octave synthesiser keyboard"></div>
+    <div class="uku-dock-foot"><span id="uku-audio-readout">SYNTH OUTPUT · READY</span><span id="uku-detected-notes">NO NOTES DETECTED</span></div>`;}
+  bindPanel(){this.panel.querySelectorAll("button").forEach(b=>b.addEventListener("click",()=>this.persistDock()));}
+  bindDock(){
+    this.dock.querySelector("#uku-instrument").addEventListener("change",e=>this.ensureEngine().then(()=>this.engine.setInstrument(e.target.value)));
+    this.dock.querySelector("#uku-volume").addEventListener("input",e=>this.engine?.setVolume(e.target.value));
+    this.dock.querySelector("#uku-octave").addEventListener("change",()=>this.renderKeyboard());
+    this.dock.querySelector("#uku-keyboard").addEventListener("pointerdown",e=>{const key=e.target.closest("[data-midi]");if(!key)return;e.preventDefault();const midi=Number(key.dataset.midi);this.ensureEngine().then(()=>{this.engine.play(midi);key.classList.add("pressed");});});
+    this.dock.querySelector("#uku-keyboard").addEventListener("pointerup",e=>this.releaseKey(e));
+    this.dock.querySelector("#uku-keyboard").addEventListener("pointerleave",e=>this.releaseKey(e));
+    this.dock.querySelector("#uku-keyboard").addEventListener("click",e=>{const key=e.target.closest("[data-midi]");if(key)this.playShort(Number(key.dataset.midi));});
+    this.dock.querySelector("#uku-synth-stop").addEventListener("click",()=>this.engine?.stopAll());
+    this.dock.querySelector("#uku-dock-collapse").addEventListener("click",()=>{this.dockCollapsed=!this.dockCollapsed;this.dock.classList.toggle("collapsed",this.dockCollapsed);this.persistDock();});
+    this.dock.querySelector("#uku-dock-lock").addEventListener("click",e=>{this.dockLocked=!this.dockLocked;e.currentTarget.textContent=this.dockLocked?"LOCKED":"UNLOCKED";e.currentTarget.setAttribute("aria-pressed",String(this.dockLocked));this.persistDock();});
+    this.renderKeyboard();
+  }
+  releaseKey(e){const key=e.target.closest("[data-midi]");if(key){this.engine?.release(Number(key.dataset.midi));key.classList.remove("pressed");}}
+  async ensureEngine(){if(!this.engine){this.engine=new SynthesisEngine();this.startAnalysis(this.engine.analyser,"SYNTH");}await this.engine.resume();return this.engine;}
+  async playShort(midi){const engine=await this.ensureEngine();engine.play(midi,.72,engine.context.currentTime,.7);}
+  renderKeyboard(){const root=this.dock.querySelector("#uku-keyboard"),octave=Number(this.dock.querySelector("#uku-octave").value);root.replaceChildren();for(let i=0;i<24;i++){const midi=12*(octave+1)+i,pitch=mod(midi),black=[1,3,6,8,10].includes(pitch),button=el("button",{type:"button",class:`uku-key ${black?"black":""}`,"data-midi":midi,"aria-label":noteName(midi)},[el("span",{text:noteName(midi)})]);root.append(button);}}
+  async auditionScale(){const engine=await this.ensureEngine();const notes=notesOf(this.selectedMask);notes.forEach((n,i)=>engine.play(60+n,.58,engine.context.currentTime+i*.19,.62));}
+  selectWorkspace(name){document.querySelectorAll("[data-module]").forEach(b=>{const active=b.dataset.module===name;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));});document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==name);this.panel.hidden=false;}
+  selectScale(mask){this.selectedMask=mask|1;this.modeIndex=0;this.renderAll();}
+  rotateMode(direction){const modes=Array.from({length:12},(_,i)=>rotateMask(this.selectedMask,i));const unique=[...new Set(modes)];this.modeIndex=mod(this.modeIndex+direction,unique.length);this.selectedMask=unique[this.modeIndex];this.renderAll();}
+  mutateScale(){const notes=notesOf(this.selectedMask);const available=Array.from({length:12},(_,i)=>i).filter(i=>!notes.includes(i));if(available.length){this.selectedMask|=1<<available[0];}else{const removable=notes.filter(n=>n!==0);this.selectedMask&=~(1<<removable.at(-1));}this.renderAll();}
+  compareSelected(){const c=compareScales(this.selectedMask,this.compareMask);this.showResult(`<b>STRUCTURAL COMPARISON</b><br>Hamming distance: ${c.hamming} · Jaccard similarity: ${(c.jaccard*100).toFixed(1)}%<br>Shared: ${c.common.map(n=>PITCHES[n]).join(" · ")}<br>Added: ${c.added.map(n=>PITCHES[n]).join(" · ")||"none"}<br>Removed: ${c.removed.map(n=>PITCHES[n]).join(" · ")||"none"}<br>Interval-vector distance: ${c.intervalVectorDistance.toFixed(2)}`);}
+  identifyFromNotes(){const result=identifyScales(notesOf(this.selectedMask),6);this.showResult("<b>BEST STRUCTURAL MATCHES</b>"+result.map((p,i)=>`<div>${i+1}. ${notesOf(p.mask).map(n=>PITCHES[n]).join(" ")} · score ${p.score.toFixed(3)} · extra ${p.extra}</div>`).join(""));}
+  showResult(html){this.panel.querySelector("#uku-result").innerHTML=html;}
+  renderAll(){this.renderTable();const p=scaleProfile(this.selectedMask),name=this.families.find(f=>f.canonical===p.canonical)?.id??p.canonical.toString(16);this.panel.querySelector("#uku-scale-name").textContent=`${p.cardinality}-note collection · ${PITCHES[this.root]} root`;this.panel.querySelector("#uku-scale-family").textContent=`FAMILY ${name.toUpperCase()} · ${p.modes.length} MODES`;this.panel.querySelector("#uku-metrics").innerHTML=[["NOTES",p.cardinality],["DISTINCT MODES",p.transpositions],["ROTATIONAL SYMMETRY",p.symmetry],["TRANSPOSITIONS",p.transpositions],["INTERVAL ENTROPY",p.intervalEntropy.toFixed(3)],["INTERVAL VECTOR",p.intervalVector.join(" · ")]].map(([k,v])=>`<div><span>${k}</span><b>${v}</b></div>`).join("");this.panel.querySelector("#uku-mode-label").textContent=`MODE ${this.modeIndex+1} / ${p.modes.length}`;this.panel.querySelector("#uku-note-grid").innerHTML=PITCHES.map((n,i)=>`<button type="button" data-note="${i}" class="${this.selectedMask&(1<<i)?"active":""}" aria-pressed="${Boolean(this.selectedMask&(1<<i))}">${n}</button>`).join("");this.visuals.circle(this.panel.querySelector("#uku-circle"),this.selectedMask,this.root);this.visuals.fingerprint(this.panel.querySelector("#uku-fingerprint"),this.selectedMask);const partials=Array.from({length:24},(_,i)=>1/(i+1)**.8);this.visuals.spectrum(this.panel.querySelector("#uku-harmonics"),partials);this.panel.querySelector("#uku-family-count").textContent=`${this.families.length} ROTATIONAL FAMILIES`;this.renderTable();}
+  renderTable(){const q=this.filter.toLowerCase(),items=this.families.filter(f=>(this.cardinality==="all"||f.profile.cardinality===Number(this.cardinality))&&(!q||f.id.includes(q)||f.profile.notes.map(n=>PITCHES[n]).join(" ").toLowerCase().includes(q)||f.profile.intervals.join("-").includes(q)));const list=this.panel.querySelector("#uku-family-list");list.innerHTML=items.slice(0,420).map(f=>`<button type="button" role="option" aria-selected="${f.canonical===this.selectedMask}" data-mask="${f.canonical}" class="${f.canonical===this.selectedMask?"selected":""}"><span class="uku-element-number">${f.profile.cardinality}</span><span class="uku-element-notes">${f.profile.notes.map(n=>PITCHES[n]).join(" · ")}</span><span class="uku-element-meta">${f.profile.transpositions} modes · σ${f.profile.symmetry}</span></button>`).join("");this.panel.querySelector("#uku-visible-count").textContent=`${items.length} MATCHING FAMILIES`;}
+  generateMotif(){const notes=this.composition.generateMotif({root:60,scale:notesOf(this.selectedMask),length:12,contour:"balanced",seed:Math.floor(Math.random()*100000)});this.composition.active.tracks[0].notes=notes;this.panel.querySelector("#uku-motif").innerHTML=notes.map(n=>`<span title="${noteName(n.midi)} · beat ${n.beat}">${noteName(n.midi)}</span>`).join("");this.showResult(`Generated ${notes.length} notes from the selected pitch collection. Motif stored in the active composition.`);}
+  exportMidi(){const bytes=this.composition.exportMIDI(),url=URL.createObjectURL(new Blob([bytes],{type:"audio/midi"})),a=el("a",{href:url,download:"uku-study.mid"});a.click();URL.revokeObjectURL(url);}
+  saveProject(){try{const count=this.composition.save();this.showResult(`Saved study. Local project collection now contains ${count} saved snapshot(s).`);}catch(e){this.showResult(`Could not save: ${esc(e.message)}`);}}
+  searchGraph(query){const root=this.panel.querySelector("#uku-graph-results");if(!query){root.textContent="Enter a note name, mask or interval sequence.";return;}const masks=this.families.filter(f=>f.profile.notes.map(n=>PITCHES[n]).join(" ").toLowerCase().includes(query.toLowerCase())).slice(0,8);root.innerHTML=masks.map(f=>`<button type="button" data-mask="${f.canonical}">${f.profile.notes.map(n=>PITCHES[n]).join(" ")} · ${f.profile.cardinality} notes</button>`).join("")||"No exact note-set matches.";}
+  async toggleMic(){if(this.micStream){this.micStream.getTracks().forEach(t=>t.stop());this.micStream=null;this.micContext?.close();this.micContext=null;this.micAnalyser=null;this.dock.querySelector("#uku-mic").textContent="MIC INPUT OFF";return;}try{this.micStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:false,noiseSuppression:false,autoGainControl:false}});const AC=window.AudioContext||window.webkitAudioContext;this.micContext=new AC();const source=this.micContext.createMediaStreamSource(this.micStream);this.micAnalyser=this.micContext.createAnalyser();this.micAnalyser.fftSize=8192;source.connect(this.micAnalyser);this.startAnalysis(this.micAnalyser,"MIC");this.dock.querySelector("#uku-mic").textContent="MIC INPUT ON";}catch(e){this.showResult(`Microphone unavailable: ${esc(e.message)}`);}}
+  startAnalysis(analyser,sourceName){if(this.analysisFrame)cancelAnimationFrame(this.analysisFrame);const data=new Float32Array(analyser.frequencyBinCount),worker=new Worker(new URL("./analysis-worker.js",import.meta.url),{type:"module"});this.worker?.terminate();this.worker=worker;worker.onmessage=e=>{this.lastNotes=e.data.notes;this.dock.querySelector("#uku-detected-notes").textContent=e.data.notes.length?e.data.notes.map(n=>PITCHES[n.note]).join(" · "):"NO NOTES DETECTED";this.dock.querySelector("#uku-audio-readout").textContent=`${sourceName} · ${e.data.peaks.length} SPECTRAL PEAKS`;};let last=0;const tick=()=>{if(!this.engine&&!this.micAnalyser)return;analyser.getFloatFrequencyData(data);const now=performance.now();if(now-last>100){worker.postMessage({magnitudes:Array.from(data),sampleRate:analyser.context?.sampleRate??this.engine?.context.sampleRate??44100,fftSize:analyser.fftSize});last=now;}this.analysisFrame=requestAnimationFrame(tick);};tick();}
+  persistDock(){try{localStorage.setItem("uku-synth-dock",JSON.stringify({collapsed:this.dockCollapsed,locked:this.dockLocked}));}catch{}}
+  restoreDock(){try{const s=JSON.parse(localStorage.getItem("uku-synth-dock")||"{}");this.dockCollapsed=Boolean(s.collapsed);this.dockLocked=Boolean(s.locked);this.dock.classList.toggle("collapsed",this.dockCollapsed);const b=this.dock.querySelector("#uku-dock-lock");b.textContent=this.dockLocked?"LOCKED":"UNLOCKED";b.setAttribute("aria-pressed",String(this.dockLocked));}catch{}}
+}
