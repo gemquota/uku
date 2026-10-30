@@ -6,6 +6,7 @@ import { ChordsView } from './chords-view.js';
 import { Metronome } from './metronome.js';
 import { ChordIdentifier } from './chord-identifier.js';
 import { StepSequencer } from './step-sequencer.js';
+import { UkuMusicLab } from './music-lab.js';
 
 const view = new TunerView();
 const signalVisualizer = new SignalVisualizer(document.querySelector('.signal-scopes'));
@@ -24,6 +25,7 @@ const state = {
   lastTuned: false,
   lastSoundAt: 0,
   audioContext: null,
+  inputSource: null,
 };
 let detector = null;
 
@@ -36,7 +38,7 @@ function selectModule(moduleName) {
   modulePanels.forEach((panel) => {
     panel.hidden = panel.dataset.panel !== moduleName;
   });
-  if (!['tuner', 'analysis'].includes(moduleName) && state.isListening) void stopTuning();
+  if (!['tuner', 'analysis'].includes(moduleName) && state.isListening && state.inputSource !== 'synth') void stopTuning();
 }
 
 moduleButtons.forEach((button) => button.addEventListener('click', () => selectModule(button.dataset.module)));
@@ -199,9 +201,9 @@ function onPitch(frequency, quality = {}) {
 
 function syncAudioControls() {
   globalMicToggle.setAttribute('aria-pressed', String(state.isListening));
-  globalMicToggle.textContent = state.isListening ? 'Mic on' : 'Mic off';
-  globalMicToggle.setAttribute('aria-label', state.isListening ? 'Stop microphone input' : 'Start microphone input');
-  audioEngineStatus.textContent = state.isListening ? 'MICROPHONE LIVE' : 'AUDIO ENGINE READY';
+  globalMicToggle.textContent = state.isListening ? (state.inputSource === 'synth' ? 'Synth in' : 'Mic on') : 'Mic off';
+  globalMicToggle.setAttribute('aria-label', state.isListening ? 'Stop audio input' : 'Start microphone input');
+  audioEngineStatus.textContent = state.isListening ? (state.inputSource === 'synth' ? 'SYNTH INPUT LIVE' : 'MICROPHONE LIVE') : 'AUDIO ENGINE READY';
 }
 
 function onSilence() {
@@ -218,6 +220,7 @@ async function stopTuning() {
   await detector?.stop();
   detector = null;
   state.isListening = false;
+  state.inputSource = null;
   state.lastTuned = false;
   view.setListening(false);
   syncAudioControls();
@@ -227,8 +230,10 @@ async function stopTuning() {
   renderStrings();
 }
 
-async function startTuning() {
+async function startTuning(externalStream = null, sourceName = 'microphone') {
+  if (state.isListening) await stopTuning();
   state.isListening = true;
+  state.inputSource = externalStream ? sourceName : 'microphone';
   view.setStarting(true);
   view.setStatus('listening', 'ASKING FOR MICROPHONE');
   view.elements.micHint.textContent = 'Allow microphone access when your browser asks.';
@@ -237,7 +242,8 @@ async function startTuning() {
   });
   detector.fftSize = Number(fftSizeInput.value) || 4096;
   try {
-    await detector.start();
+    if (externalStream) await detector.startFromStream(externalStream, { ownsStream: false });
+    else await detector.start();
     state.lastTuned = false;
     view.setListening(true);
     syncAudioControls();
@@ -245,6 +251,7 @@ async function startTuning() {
   } catch (error) {
     detector = null;
     state.isListening = false;
+    state.inputSource = null;
     syncAudioControls();
     const message = error.name === 'NotAllowedError' || error.name === 'PermissionDeniedError'
       ? 'Microphone access is blocked. Allow it in browser settings, then try again.'
@@ -266,6 +273,12 @@ function toggleMicrophone() {
   if (!['tuner', 'analysis'].includes(activeModule)) selectModule('analysis');
   void startTuning();
 }
+
+window.addEventListener('uku:audio-input', (event) => {
+  const { stream, source = 'synth' } = event.detail ?? {};
+  if (stream) void startTuning(stream, source);
+});
+window.addEventListener('uku:audio-input-stop', () => void stopTuning());
 
 view.onStartStop(toggleMicrophone);
 globalMicToggle.addEventListener('click', toggleMicrophone);
@@ -305,3 +318,6 @@ view.setTuningOptions(state.tuningKey);
 renderStrings();
 renderAnalysis();
 syncAudioControls();
+
+// Mount the expanded theory, synthesis and composition workspace.
+const musicLab = new UkuMusicLab();
