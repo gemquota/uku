@@ -27,7 +27,7 @@ The five workspaces fit a fixed viewport and use compact responsive layouts rath
 
 ## Product direction
 
-Uku prioritizes instrument-grade tuning, measurements derived from live microphone samples, expressive visualizations driven by the captured signal, and compact tools for experienced musicians. The current Theory workspace is a useful fretboard/chord/scale tool, not yet the larger relational music-theory knowledge graph; MIDI, recording/export, and a broader accompaniment engine remain future work.
+Uku prioritizes instrument-grade tuning, measurements derived from live microphone samples, expressive visualizations driven by the captured signal, and compact tools for experienced musicians. The Theory workspace includes a periodic-table-style scale atlas indexed by modal collection, interval pattern, and cardinality. A persistent docked synthesiser provides plucked-string ukulele/guitar voices and an additive piano voice; its output can be selected as the tuner/analysis input and passes through the same pitch and signal-analysis path as microphone audio. These are procedural synthesis models, not sampled instrument recordings. MIDI, multitrack recording/export, and a deeper relational theory graph remain future work.
 
 ## Run locally
 
