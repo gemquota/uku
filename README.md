@@ -30,7 +30,7 @@ The periodic atlas contains **344 families** under the implemented convention: n
 ## Synthesis and analysis
 
 - `src/synthesis-engine.js` provides a persistent Web Audio synthesiser with piano-, guitar-, ukulele-, and synth-oriented oscillator voicings, envelope controls, chords, strums, and a shared analyser output.
-- The synthesiser dock can be placed at the bottom, top, left, right, or in a floating position; it can be collapsed, resized, and locked. Its layout preference persists across workspaces and sessions.
+- The synthesiser dock can be placed at the bottom, top, left, right, or in a floating position; it can be collapsed, resized, and locked. Its layout preference persists across workspaces and sessions. The synthesiser output is also exposed as a MediaStream and routed through the existing tuner pitch detector and signal visualization path, rather than being analyzed in an isolated feature.
 - The dock's keyboard feeds the synthesis engine directly. The same analyser path inspects synthesiser output.
 - Optional microphone analysis uses a separate capture path. Microphone permission requires HTTPS or localhost.
 - `src/analysis-worker.js` performs spectral peak and chroma extraction in a Web Worker. These are candidate pitch-class observations, not a validated polyphonic transcription model.
