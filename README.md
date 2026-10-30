@@ -1,13 +1,13 @@
 # Uku
 
-A mobile-first ukulele companion with a live tuner, searchable chord library, and tap-tempo metronome in a calm vaporwave/cyberpunk neon interface.
+Uku is an acoustic intelligence workstation: a precision ukulele tuner first, a live signal-analysis instrument second, and a compact music-theory and accompaniment workstation. Its five fixed-screen workspaces are Tuner, Analysis, Theory, Studio, and Library; the document does not scroll.
 
 ## Phase 1: tuner
 
 - Live microphone pitch detection using the Web Audio API; microphone access requires HTTPS or localhost.
 - Automatic nearest-string matching, or tap a string to lock onto it.
 - Standard high-G, low-G, D, and baritone presets, plus a chromatic mode.
-- Frequency, detected note, flat/sharp cents meter, and a clear in-tune state.
+- Frequency, detected note, target frequency, adjustable A4 reference (400–480 Hz), cents meter, and clear in-tune state.
 - Optional in-tune tone; sound is off until the player enables it.
 - Responsive layout, keyboard-focus states, screen-reader labels, reduced-motion support, and helpful permission/error messages.
 
@@ -16,20 +16,18 @@ A mobile-first ukulele companion with a live tuner, searchable chord library, an
 The app is dependency-free and uses browser ES modules:
 
 - `src/main.js` coordinates app state, preset selection, and module events.
-- `src/pitch-detector.js` owns the microphone/Web Audio lifecycle and pitch analysis.
-- `src/tunings.js` contains presets, note conversion, and string matching.
-- `src/tuner-view.js` renders and updates the tuner interface.
-- `src/chords.js` generates chord voicings; `src/chords-view.js` provides catalog search, filters, and fingering diagrams.
-- `src/metronome.js` handles tempo, tap-tempo, scheduled audio clicks, and visual beats.
+- `src/pitch-detector.js` owns the microphone/Web Audio lifecycle and YIN-style fundamental-frequency analysis, including normalized-difference pitch confidence and rolling pitch stability.
+- `src/tunings.js` contains presets, note conversion, and frequency-based string matching.
+- `src/tuner-view.js` renders the tuning interface; `src/signal-visualizer.js` draws live waveform, spectrum, spectrogram, derivative, and tuning-map scopes, and derives RMS/peak, FFT resolution, sample rate, and relative spectral estimates.
+- `src/chords.js` generates chord voicings; `src/chords-view.js` provides catalog search, filters, and fingering diagrams; `src/chord-identifier.js` ranks fretboard selections by estimated chord-tone coverage.
+- `src/metronome.js` handles tempo, tap-tempo, scheduled audio clicks, and visual beats; `src/step-sequencer.js` provides layered drum and pitched tracks with synthesized Web Audio kits.
 - `index.html` is the app shell; `styles.css` owns the responsive visual system.
 
-The tuner, chord library, and rhythm tools are independent browser modules connected through the app shell. The chord catalog is generated from twelve roots and nine qualities, with four-string fingerings and diagram labels; the metronome schedules clicks with Web Audio and syncs its visual beat display.
+The five workspaces fit a fixed viewport and use compact responsive layouts rather than page scrolling. Tuner and Analysis share microphone capture. Theory provides chord-tone mapping, note-to-chord matching, and six scale formulas over a 13-fret map; chord-identification rankings are theory-fit estimates, not probabilities. Library contains a searchable, filterable 108-voicing catalog with explicit pagination; Studio combines the metronome with a layered step sequencer. The Analysis panel reports digital-full-scale-relative amplitude and relative SNR/HNR estimates only: browser microphone gain and device response are uncalibrated, so these values are not laboratory measurements. Seven palettes support light and dark appearances. The sequencer uses synthesized drum timbres (not sampled or affiliated Roland sound banks) and oscillator-based bass, guitar, and piano layers.
 
-## Roadmap
+## Product direction
 
-- **Phase 1 — Core tuner:** responsive app shell, live tuner, alternate presets, chromatic mode, accessible tuning feedback. Complete.
-- **Phase 2 — Chords and rhythm:** searchable 108-entry chord catalog with fingering diagrams and a tempo/tap-tempo metronome with optional audio and visual beat. Complete.
-- **Later phases — To be defined:** refine the core roadmap based on player feedback before taking on additional practice tools.
+Uku prioritizes instrument-grade tuning, measurements derived from live microphone samples, expressive visualizations driven by the captured signal, and compact tools for experienced musicians. The current Theory workspace is a useful fretboard/chord/scale tool, not yet the larger relational music-theory knowledge graph; MIDI, recording/export, and a broader accompaniment engine remain future work.
 
 ## Run locally
 

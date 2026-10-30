@@ -48,12 +48,12 @@ export const tunings = {
 
 export const noteNames = ['C', 'C♯', 'D', 'D♯', 'E', 'F', 'F♯', 'G', 'G♯', 'A', 'A♯', 'B'];
 
-export function frequencyToNote(frequency) {
-  const midi = 69 + 12 * Math.log2(frequency / 440);
+export function frequencyToNote(frequency, referenceA4 = 440) {
+  const midi = 69 + 12 * Math.log2(frequency / referenceA4);
   const roundedMidi = Math.round(midi);
   const pitchClass = ((roundedMidi % 12) + 12) % 12;
   const octave = Math.floor(roundedMidi / 12) - 1;
-  const targetFrequency = 440 * 2 ** ((roundedMidi - 69) / 12);
+  const targetFrequency = referenceA4 * 2 ** ((roundedMidi - 69) / 12);
   const cents = Math.round(1200 * Math.log2(frequency / targetFrequency));
   return {
     name: noteNames[pitchClass],
@@ -68,5 +68,17 @@ export function findNearestString(midi, strings) {
   return strings.reduce((nearest, string) => {
     const distance = Math.abs(string.midi - midi);
     return !nearest || distance < nearest.distance ? { string, distance } : nearest;
+  }, null)?.string ?? null;
+}
+
+export function frequencyForMidi(midi, referenceA4 = 440) {
+  return referenceA4 * 2 ** ((midi - 69) / 12);
+}
+
+export function findNearestStringByFrequency(frequency, strings, referenceA4 = 440) {
+  return strings.reduce((nearest, string) => {
+    const targetFrequency = frequencyForMidi(string.midi, referenceA4);
+    const cents = Math.abs(1200 * Math.log2(frequency / targetFrequency));
+    return !nearest || cents < nearest.cents ? { string, cents } : nearest;
   }, null)?.string ?? null;
 }

@@ -4,8 +4,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="theme-color" content="#10101b" />
-    <meta name="description" content="A calm, neon-lit ukulele tuner. Find your note and tune by ear, one string at a time." />
-    <title>Uku — your ukulele, in tune</title>
+    <meta name="description" content="Uku is an acoustic intelligence workstation for precision tuning, signal analysis, musical theory, and accompaniment." />
+    <title>Uku — Acoustic Intelligence Workstation</title>
     <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 40 40'%3E%3Crect width='40' height='40' rx='13' fill='%23151524'/%3E%3Cpath d='M11 25h5l4-10 5 16 4-11h3' fill='none' stroke='%23b8a0ff' stroke-width='2.5' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E" />
     <link rel="stylesheet" href="./styles.css" />
     <script type="module" src="./src/main.js"></script>
@@ -20,26 +20,67 @@
           <span>uku<span class="brand-period">.</span></span>
         </a>
         <div class="topbar-right">
-          <span class="live-label"><span class="live-dot"></span> YOUR POCKET MUSICIAN</span>
+          <span class="live-label"><span class="live-dot"></span> <span id="audio-engine-status">AUDIO ENGINE READY</span></span>
+          <button class="sound-toggle microphone-toggle" id="global-mic-toggle" type="button" aria-pressed="false" aria-label="Start microphone input">Mic off</button>
           <button class="sound-toggle" id="sound-toggle" type="button" aria-pressed="false" aria-label="Turn tuning sound off">
             <svg class="sound-icon" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M11 5 6 9H3v6h3l5 4V5Z" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"/><path d="M15.5 8.5a5 5 0 0 1 0 7m2.5-9.5a8.5 8.5 0 0 1 0 12" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"/></svg>
             <span>Sound off</span>
           </button>
+          <details class="settings-menu">
+            <summary aria-label="Display settings">⚙</summary>
+            <div class="settings-popover">
+              <label for="theme-palette">PALETTE<select id="theme-palette"><option value="vaporwave">Vaporwave</option><option value="contrast">Ultra contrast</option><option value="monochrome">Monochrome</option><option value="pastel-rainbow">Pastel rainbow</option><option value="rainbow">Neon rainbow</option><option value="ocean">Ocean</option><option value="forest">Forest</option><option value="sunset">Sunset</option></select></label>
+              <label for="theme-mode">APPEARANCE<select id="theme-mode"><option value="dark">Dark</option><option value="light">Light</option></select></label>
+              <label for="reference-a4">REFERENCE A4 (Hz)<input id="reference-a4" type="number" min="400" max="480" step="0.1" value="440" /></label>
+              <label for="fft-size">ANALYSIS FFT<select id="fft-size"><option value="2048">2048</option><option value="4096" selected>4096</option><option value="8192">8192</option></select></label>
+            </div>
+          </details>
         </div>
       </header>
 
       <main>
         <section class="intro" aria-labelledby="page-title">
-          <p class="eyebrow"><span class="eyebrow-line"></span> THE UKULELE COMPANION</p>
-          <h1 id="page-title">Find your <span>frequency.</span></h1>
-          <p class="intro-copy">A little quiet before the music. Let’s get you in tune.</p>
+          <p class="eyebrow"><span class="eyebrow-line"></span> ACOUSTIC INTELLIGENCE WORKSTATION</p>
+          <h1 id="page-title">Precision <span>in sound.</span></h1>
         </section>
 
-        <nav class="module-nav" aria-label="Uku tools">
+        <nav class="module-nav" aria-label="Workspaces">
           <button class="module-link active" type="button" data-module="tuner" aria-pressed="true"><span class="module-glyph">⌁</span> Tuner</button>
-          <button class="module-link" type="button" data-module="chords" aria-pressed="false"><span class="module-glyph">♧</span> Chords</button>
-          <button class="module-link" type="button" data-module="rhythm" aria-pressed="false"><span class="module-glyph">◷</span> Rhythm</button>
+          <button class="module-link" type="button" data-module="analysis" aria-pressed="false"><span class="module-glyph">⌗</span> Analysis</button>
+          <button class="module-link" type="button" data-module="theory" aria-pressed="false"><span class="module-glyph">♧</span> Theory</button>
+          <button class="module-link" type="button" data-module="studio" aria-pressed="false"><span class="module-glyph">▦</span> Studio</button>
+          <button class="module-link" type="button" data-module="library" aria-pressed="false"><span class="module-glyph">◫</span> Library</button>
         </nav>
+
+        <section class="tool-panel module-panel analysis-panel" id="analysis-panel" data-panel="analysis" aria-labelledby="analysis-heading" hidden>
+          <header class="workspace-title"><div><p class="eyebrow">ACOUSTIC INTELLIGENCE</p><h2 id="analysis-heading">Signal <span>analysis.</span></h2></div><span class="analysis-live" id="analysis-state">WAITING FOR INPUT</span></header>
+          <section class="analysis-metrics" aria-label="Live signal measurements">
+            <div><span>FUNDAMENTAL</span><strong id="metric-fundamental">—</strong></div>
+            <div><span>PITCH CONFIDENCE*</span><strong id="metric-confidence">—</strong></div>
+            <div><span>PITCH STABILITY</span><strong id="metric-stability">—</strong></div>
+            <div><span>RMS / PEAK (FS)</span><strong id="metric-level">—</strong></div>
+            <div><span>SNR ESTIMATE</span><strong id="metric-snr">—</strong></div>
+            <div><span>HNR PROXY*</span><strong id="metric-hnr">—</strong></div>
+            <div><span>FFT / RESOLUTION</span><strong id="metric-fft">—</strong></div>
+            <div><span>SAMPLE RATE</span><strong id="metric-rate">—</strong></div>
+            <p>*Pitch confidence uses the YIN-style normalized difference. SNR and FFT-band HNR are model-based estimates, not calibrated measurements; amplitude is relative to digital full scale.</p>
+          </section>
+          <div class="analysis-scope-layout">
+            <section class="signal-monitor" aria-labelledby="signal-heading">
+              <h3 class="analysis-scope-title" id="signal-heading">LIVE SIGNAL · TIME · FREQUENCY</h3>
+              <div class="signal-scopes analysis-scopes">
+              <figure class="signal-scope signal-scope-strings"><figcaption>YOUR FOUR STRINGS <span>LIVE TUNING MAP</span></figcaption><canvas data-scope="strings" role="img" aria-label="Four ukulele strings with live tuning feedback"></canvas></figure>
+              <figure class="signal-scope signal-scope-zoom"><figcaption>STRING DETAIL <span>ZOOMED LIVE WAVEFORM</span></figcaption><canvas data-scope="zoomed-waveform" role="img" aria-label="Zoomed waveform of the currently detected audio"></canvas></figure>
+              <figure class="signal-scope signal-scope-psychedelic"><figcaption>RESONANCE FIELD <span>SHAPED BY YOUR PITCH</span></figcaption><canvas data-scope="psychedelic" role="img" aria-label="Abstract audio visualization influenced by the current tuning accuracy"></canvas></figure>
+              <figure class="signal-scope"><figcaption>WAVEFORM <span>TIME DOMAIN</span></figcaption><canvas data-scope="waveform" role="img" aria-label="Live microphone waveform"></canvas></figure>
+              <figure class="signal-scope"><figcaption>SPECTRUM <span>FFT · FREQUENCY DOMAIN</span></figcaption><canvas data-scope="spectrum" role="img" aria-label="Live microphone frequency spectrum from FFT magnitudes"></canvas></figure>
+              <figure class="signal-scope"><figcaption>SPECTROGRAM <span>FFT MAGNITUDE OVER TIME</span></figcaption><canvas data-scope="spectrogram" role="img" aria-label="Scrolling spectrogram based on measured FFT magnitudes"></canvas></figure>
+              <figure class="signal-scope signal-scope-derivative"><figcaption>DERIVATIVE <span>WAVEFORM SLOPE</span></figcaption><canvas data-scope="derivative" role="img" aria-label="Live derivative of the microphone waveform"></canvas></figure>
+              </div>
+            </section>
+          </div>
+        </section>
+
 
         <section class="tuner-card module-panel" id="tuner" data-panel="tuner" aria-label="Ukulele tuner">
           <div class="card-topline">
@@ -62,6 +103,7 @@
 
           <div class="note-display" aria-live="polite" aria-atomic="true">
             <span class="note-frequency" id="frequency-readout">— Hz</span>
+            <span class="target-frequency" id="target-frequency">TARGET — Hz · A4 = 440 Hz</span>
             <div class="note-name" id="note-readout">—</div>
             <div class="detected-note" id="detected-note">PLAY A STRING TO BEGIN</div>
           </div>
@@ -89,29 +131,61 @@
           </div>
         </section>
 
-        <section class="tool-panel module-panel" id="chords-panel" data-panel="chords" aria-labelledby="chords-heading" hidden>
+        <section class="tool-panel module-panel" id="theory-panel" data-panel="theory" data-mode="chord" aria-labelledby="chords-heading" hidden>
           <div class="tool-heading">
             <p class="eyebrow"><span class="eyebrow-line"></span> FIND YOUR SHAPE</p>
-            <h2 id="chords-heading">Chord <span>library.</span></h2>
-            <p>Explore ukulele voicings, one string at a time.</p>
+            <h2 id="chords-heading">Music <span>theory.</span></h2>
+            <p>Identify harmony, inspect chord tones, and map scales across one shared fretboard.</p>
           </div>
-          <div class="chord-controls">
-            <label class="search-wrap"><span class="sr-only">Search chords</span><input id="chord-search" type="search" placeholder="Search chords or notes" autocomplete="off" /></label>
-            <label><span class="sr-only">Filter by root note</span><select id="chord-root-filter" aria-label="Filter by root note"></select></label>
-            <label><span class="sr-only">Filter by chord quality</span><select id="chord-quality-filter" aria-label="Filter by chord quality"></select></label>
+          <div class="fretboard-modes" role="group" aria-label="Fretboard display mode">
+            <button type="button" class="mode-chip active" data-board-mode="chord" aria-pressed="true">Chord tones</button>
+            <button type="button" class="mode-chip" data-board-mode="identify" aria-pressed="false">Identify</button>
+            <button type="button" class="mode-chip" data-board-mode="scale" aria-pressed="false">Scale</button>
           </div>
-          <div class="chord-layout">
-            <div class="chord-list" id="chord-list" role="group" aria-label="Chord results"></div>
-            <section class="chord-detail" id="chord-detail" aria-live="polite" aria-label="Selected chord fingering"></section>
-          </div>
+          <section class="workspace-section fretboard-section" id="fretboard-section" aria-labelledby="fretboard-heading">
+            <h3 class="workspace-panel-heading" id="fretboard-heading">13-FRET MAP <span id="fretboard-caption">All positions in the selected chord</span></h3>
+            <div class="fretboard-map-scroll"><div class="fretboard-map" id="fretboard-map" role="group" aria-label="Ukulele notes from open strings through fret 12"></div></div>
+            <p class="fretboard-legend" id="fretboard-status" aria-live="polite"></p>
+          </section>
+          <section class="workspace-section" id="identify-section" aria-labelledby="identify-heading" hidden>
+            <h3 class="workspace-panel-heading" id="identify-heading">IDENTIFY A CHORD <span>Select one note per string</span></h3>
+            <div class="identifier-toolbar"><span id="identifier-summary">Choose notes on the fretboard.</span><button class="secondary-button" id="identifier-clear" type="button" disabled>Clear notes</button></div>
+            <div class="identifier-results" id="identifier-results" aria-live="polite" aria-label="Possible chord matches"></div>
+            <div class="identifier-pagination"><button class="secondary-button" id="identifier-page-prev" type="button" aria-label="Previous chord matches">‹</button><span id="identifier-page-label" aria-live="polite"></span><button class="secondary-button" id="identifier-page-next" type="button" aria-label="Next chord matches">›</button></div>
+          </section>
+          <section class="workspace-section" id="scale-section" aria-labelledby="scale-heading" hidden>
+            <h3 class="workspace-panel-heading" id="scale-heading">SCALE POSITIONS <span>Highlight scale tones across the fretboard</span></h3>
+            <div class="scale-controls">
+              <label>ROOT<select id="scale-root"></select></label>
+              <label>SCALE<select id="scale-type"><option value="major">Major</option><option value="minor">Natural minor</option><option value="major-pentatonic">Major pentatonic</option><option value="minor-pentatonic">Minor pentatonic</option><option value="blues">Blues</option><option value="dorian">Dorian</option></select></label>
+            </div>
+            <p class="scale-notes" id="scale-notes" aria-live="polite"></p>
+          </section>
         </section>
 
-        <section class="tool-panel module-panel" id="rhythm-panel" data-panel="rhythm" aria-labelledby="rhythm-heading" hidden>
-          <div class="tool-heading">
-            <p class="eyebrow"><span class="eyebrow-line"></span> FIND YOUR GROOVE</p>
-            <h2 id="rhythm-heading">Keep the <span>pulse.</span></h2>
-            <p>A steady beat makes room for the music.</p>
+        <section class="tool-panel module-panel library-panel" id="library-panel" data-panel="library" aria-labelledby="library-heading" hidden>
+          <header class="workspace-title"><div><p class="eyebrow">MUSICAL REFERENCE</p><h2 id="library-heading">Chord <span>library.</span></h2></div><span class="library-count">108 VOICINGS</span></header>
+          <section class="workspace-section" id="catalog-section" aria-labelledby="catalog-heading">
+            <h3 class="workspace-panel-heading" id="catalog-heading">CHORD CATALOG <span>Search · filter · choose a voicing</span></h3>
+            <div class="chord-controls">
+            <div class="chord-search-row"><label class="search-wrap"><span class="sr-only">Search chords</span><input id="chord-search" type="search" placeholder="Search chords or notes" autocomplete="off" /></label><button class="secondary-button chord-clear" id="chord-filters-clear" type="button" disabled>Clear filters</button></div>
+            <section class="quality-filters" id="chord-quality-filter" aria-label="Filter by chord quality"></section>
+            <section class="root-filters" aria-labelledby="root-filter-heading">
+              <div class="filter-heading"><h3 id="root-filter-heading">ROOT NOTES</h3><span>Tap to select · multiple</span></div>
+              <div class="keyboard-keys" id="chord-root-filter" role="group" aria-label="Filter by root note"></div>
+            </section>
           </div>
+            <div class="chord-layout">
+              <div class="chord-list" id="chord-list" role="group" aria-label="Chord results"></div>
+              <section class="chord-detail" id="chord-detail" aria-live="polite" aria-label="Selected chord fingering"></section>
+            </div>
+            <div class="chord-pagination"><button class="secondary-button" id="chord-page-prev" type="button" aria-label="Previous chord page">‹</button><span id="chord-page-label" aria-live="polite"></span><button class="secondary-button" id="chord-page-next" type="button" aria-label="Next chord page">›</button></div>
+          </section>
+        </section>
+
+        <section class="tool-panel module-panel studio-panel" id="studio-panel" data-panel="studio" aria-label="Accompaniment studio" hidden>
+          <section class="tool-panel studio-tool-panel" id="rhythm-panel" aria-labelledby="rhythm-heading">
+          <header class="studio-subheading"><h2 id="rhythm-heading">Metronome</h2></header>
           <div class="metronome-card">
             <div class="tempo-readout"><span id="tempo-value">96</span><span>BPM</span></div>
             <label class="tempo-slider-label" for="tempo-slider">TEMPO <span>40–220 BPM</span></label>
@@ -127,9 +201,33 @@
           </div>
         </section>
 
-        <section class="tip-row module-panel" data-panel="tuner" aria-label="Tuning tip">
-          <span class="tip-icon" aria-hidden="true">✳</span>
-          <p><strong>Little tip</strong> — pluck one string at a time, then let it ring.</p>
+        <section class="tool-panel studio-tool-panel" id="sequencer-panel" aria-labelledby="sequencer-heading">
+          <div class="tool-heading">
+            <p class="eyebrow"><span class="eyebrow-line"></span> BUILD A LITTLE GROOVE</p>
+            <h2 id="sequencer-heading">Pocket <span>studio.</span></h2>
+            <p>Layer a drum loop with piano-roll bass, guitar, and keys.</p>
+          </div>
+          <section class="sequencer-card workspace-section" aria-label="Step sequencer">
+            <h3 class="workspace-panel-heading">SEQUENCER EDITOR <span>Drums · bass · guitar · piano</span></h3>
+            <div class="sequencer-toolbar">
+              <button class="mic-button sequencer-play" id="sequencer-play" type="button" aria-pressed="false">Play</button>
+              <label class="sequencer-control">BPM<input id="sequencer-bpm" type="number" min="40" max="220" value="96" /></label>
+              <label class="sequencer-control">METER<select id="sequencer-meter-top"><option>4</option><option>3</option><option>5</option><option>6</option><option>7</option></select><span>/</span><select id="sequencer-meter-bottom"><option>4</option><option>8</option></select></label>
+              <label class="sequencer-control">SNAP<select id="sequencer-snap"><option value="1">1/16</option><option value="2">1/8</option><option value="4">1/4</option></select></label>
+              <label class="sequencer-control">NEW NOTE<select id="sequencer-length"><option value="1">1/16</option><option value="2">1/8</option><option value="4" selected>1/4</option><option value="8">1/2</option></select></label>
+            </div>
+            <div class="sequencer-kit-row">
+              <label class="sequencer-control kit-control">DRUM KIT<select id="sequencer-kit"><option value="0">808-inspired</option><option value="1">909-inspired</option><option value="2">Linn-style</option><option value="3">Acoustic</option><option value="4">Rock kit</option><option value="5">Club</option><option value="6">Hardstyle</option><option value="7">Techno</option><option value="8">Reggae</option><option value="9">Lo-fi</option><option value="10">Sound FX</option></select></label>
+              <button class="secondary-button" id="add-drum-track" type="button">＋ Drum layer</button>
+              <label class="sequencer-control">INSTRUMENT<select id="sequencer-instrument"><option>Bass</option><option>Guitar</option><option>Piano</option></select></label>
+              <button class="secondary-button" id="add-melodic-track" type="button">＋ Note layer</button>
+            </div>
+            <div class="sequencer-track-pages"><button class="secondary-button" id="sequencer-track-prev" type="button" aria-label="Previous sequencer track">‹</button><span id="sequencer-track-page" aria-live="polite"></span><button class="secondary-button" id="sequencer-track-next" type="button" aria-label="Next sequencer track">›</button></div>
+            <div class="sequencer-track-list" id="sequencer-tracks" aria-label="Sequencer track editor"></div>
+            <p class="sequencer-status" id="sequencer-status" aria-live="polite">Synthesized drum kits · loop one bar · add layers as needed</p>
+            <p class="sequencer-help">Tap an empty cell to add a note. Drag a note to move it; drag its right edge to change length. Snap and new-note length apply to every layer.</p>
+          </section>
+          </section>
         </section>
       </main>
 
