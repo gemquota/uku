@@ -1,4 +1,4 @@
-import {notesOf,scaleProfile,compareScales,maskOf} from "./music-theory.js";
+import {notesOf,scaleProfile,hammingDistance,maskOf} from "./music-theory.js";
 export class MusicalKnowledgeGraph {
   constructor(){this.nodes=new Map();this.edges=[];}
   addNode(type,id,data={}){const key=`${type}:${id}`;this.nodes.set(key,{id:key,type,data});return key;}
@@ -6,7 +6,7 @@ export class MusicalKnowledgeGraph {
   neighbours(id,relation=null){return this.edges.filter(e=>(e.from===id||e.to===id)&&(!relation||e.relation===relation)).map(e=>({...e,node:this.nodes.get(e.from===id?e.to:e.from)}));}
   buildScaleGraph(masks){
     this.nodes.clear();this.edges=[];const ids=masks.map(mask=>this.addNode("scale",mask.toString(16),scaleProfile(mask)));
-    for(let i=0;i<masks.length;i++)for(let j=i+1;j<masks.length;j++){const c=compareScales(masks[i],masks[j]);if(c.hamming<=2)this.relate(ids[i],ids[j],"mutation-neighbour",1/(1+c.hamming),c);}
+    for(let i=0;i<masks.length;i++)for(let j=i+1;j<masks.length;j++){const distance=hammingDistance(masks[i],masks[j]);if(distance<=2)this.relate(ids[i],ids[j],"mutation-neighbour",1/(1+distance),{hamming:distance});}
     return {nodes:this.nodes.size,edges:this.edges.length};
   }
   search(query){const q=String(query).toLowerCase();return [...this.nodes.values()].filter(n=>n.id.toLowerCase().includes(q)||JSON.stringify(n.data).toLowerCase().includes(q));}
