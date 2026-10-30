@@ -277,6 +277,8 @@ export class StepSequencer {
       const AudioContextClass = window.AudioContext || window.webkitAudioContext;
       if (!AudioContextClass) throw new Error('Web Audio is unavailable in this browser.');
       this.audioContext = new AudioContextClass();
+    }
+    if (!this.noiseBuffer) {
       const buffer = this.audioContext.createBuffer(1, this.audioContext.sampleRate, this.audioContext.sampleRate);
       const samples = buffer.getChannelData(0);
       for (let index = 0; index < samples.length; index += 1) samples[index] = Math.random() * 2 - 1;
