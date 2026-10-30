@@ -38,7 +38,9 @@ The periodic atlas contains **344 families** under the implemented convention: n
 ## Composition and relationships
 
 - `src/composition-engine.js` provides seeded motif generation, transposition, retrograde, inversion, augmentation, diminution, project snapshots, and Standard MIDI File export.
-- `src/knowledge-graph.js` models typed musical nodes and weighted relationships, with neighbourhood and path queries; the workspace builds a mutation-neighbour graph for the 344 atlas families.\n- `src/harmony-engine.js` provides chord templates, chord identification, scale-contained chord discovery, and voice-leading cost estimates.\n- `src/acoustic-engine.js` compares equal temperament, just-major ratios, and Pythagorean ratios; it also exposes beat-frequency, harmonic-partial, and roughness estimators.\n- `src/acoustic-engine.js` compares equal temperament, just-major ratios, and Pythagorean ratios; it also exposes beat-frequency, harmonic-partial, and roughness estimators.
+- `src/knowledge-graph.js` models typed musical nodes and weighted relationships, with neighbourhood and path queries; the workspace builds a mutation-neighbour graph for the 344 atlas families.
+- `src/harmony-engine.js` provides chord templates, chord identification, scale-contained chord discovery, and voice-leading cost estimates.
+- `src/acoustic-engine.js` compares equal temperament, just-major ratios, and Pythagorean ratios; it also exposes beat-frequency, harmonic-partial, and roughness estimators.
 - `src/visualization-engine.js` renders scale geometry, interval fingerprints, and harmonic partials from the underlying data.
 - `src/music-lab.js` integrates these capabilities into the existing application shell and mounts the persistent dock.
 
