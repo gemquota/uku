@@ -21,12 +21,18 @@ export class PitchDetector {
     if (!navigator.mediaDevices?.getUserMedia) {
       throw new Error('Microphone access needs a supported browser and a secure connection (HTTPS).');
     }
-    this.stream = await navigator.mediaDevices.getUserMedia({
+    const stream = await navigator.mediaDevices.getUserMedia({
       audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false },
     });
+    return this.startFromStream(stream, { ownsStream: true });
+  }
+
+  async startFromStream(stream, { ownsStream = false } = {}) {
+    this.stream = stream;
+    this.ownsStream = ownsStream;
     const AudioContextClass = window.AudioContext || window.webkitAudioContext;
     if (!AudioContextClass) {
-      this.stream.getTracks().forEach((track) => track.stop());
+      if (this.ownsStream) this.stream?.getTracks().forEach((track) => track.stop());
       this.stream = null;
       throw new Error('This browser does not support live audio analysis.');
     }
@@ -45,7 +51,7 @@ export class PitchDetector {
       this.active = true;
       this.loop(analyser);
     } catch (error) {
-      this.stream.getTracks().forEach((track) => track.stop());
+      if (this.ownsStream) this.stream?.getTracks().forEach((track) => track.stop());
       this.stream = null;
       await this.context?.close();
       this.context = null;
@@ -176,8 +182,9 @@ export class PitchDetector {
     this.active = false;
     if (this.frame) cancelAnimationFrame(this.frame);
     this.frame = null;
-    this.stream?.getTracks().forEach((track) => track.stop());
+    if (this.ownsStream) this.stream?.getTracks().forEach((track) => track.stop());
     this.stream = null;
+    this.ownsStream = false;
     if (this.context && this.context.state !== 'closed') await this.context.close();
     this.context = null;
     this.buffer = null;
