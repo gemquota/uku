@@ -758,7 +758,7 @@ html, body, .app-shell, main, .module-panel { overscroll-behavior: none; }
 .white-key{position:relative;z-index:1;min-width:0;padding:0 0 6px;border:1px solid #aaa5b8;border-radius:0 0 5px 5px;background:linear-gradient(#fff,#d8d5df);color:#302c3a;font:8px var(--mono)}
 .white-key.pressed{background:linear-gradient(#cfc0ff,#9f87d6)}
 .synth-black-keys{position:absolute;z-index:2;inset:0;pointer-events:none}
-.black-key{position:absolute;top:0;left:calc((var(--black-index) + .68)*100%/14);width:calc(100%/22);height:58%;transform:translateX(-50%);padding:0;border:1px solid #08080d;border-radius:0 0 4px 4px;background:linear-gradient(#40394e,#100f17);color:#e8e0ff;font:6px var(--mono);pointer-events:auto}
+.black-key{position:absolute;top:0;left:calc((var(--black-index) + 1)*100%/14);width:calc(100%/22);height:58%;transform:translateX(-50%);padding:0;border:1px solid #08080d;border-radius:0 0 4px 4px;background:linear-gradient(#40394e,#100f17);color:#e8e0ff;font:6px var(--mono);pointer-events:auto}
 .black-key.pressed{background:linear-gradient(#bba4f7,#68528f)}
 .synth-help{margin:0;color:var(--muted);font-size:8px;line-height:1.4}
 .synth-edge-controls{justify-content:flex-end}
