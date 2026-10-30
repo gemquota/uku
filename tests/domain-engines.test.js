@@ -1,0 +1,11 @@
+import test from "node:test";
+import assert from "node:assert/strict";
+import {HarmonyEngine} from "../src/harmony-engine.js";
+import {AcousticEngine} from "../src/acoustic-engine.js";
+import {CompositionEngine} from "../src/composition-engine.js";
+test("major scale exposes its diatonic triads",()=>{const h=new HarmonyEngine();const chords=h.chordsInScale(0b101010110101,3);assert.ok(chords.some(c=>c.root===0&&c.quality==="maj"));assert.ok(chords.some(c=>c.root===2&&c.quality==="min"));});
+test("chord identification ranks an exact C major triad",()=>{const found=new HarmonyEngine().identify([0,4,7],3);assert.equal(found[0].root,0);assert.equal(found[0].quality,"maj");});
+test("just-major fifth differs from equal temperament",()=>{const a=new AcousticEngine();const equal=a.compareInterval(60,67,"12-TET");const just=a.compareInterval(60,67,"Just major");assert.ok(Math.abs(equal.cents-700)<.001);assert.ok(Math.abs(just.cents-701.955)<.1);});
+test("harmonic partials have descending amplitudes",()=>{const p=new AcousticEngine().partials(440,8);assert.equal(p[0].frequency,440);assert.ok(p[0].relativeAmplitude>p[7].relativeAmplitude);});
+test("composition transforms preserve note count",()=>{const c=new CompositionEngine();const notes=c.generateMotif({root:60,scale:[0,2,4,5,7,9,11],length:8,seed:42});assert.equal(notes.length,8);assert.equal(c.transform(notes,"retrograde").length,8);assert.equal(c.transform(notes,"invert").length,8);});
+test("MIDI export starts with a standard MIDI header",()=>{const c=new CompositionEngine();c.active.tracks[0].notes=c.generateMotif({length:4,seed:1});const bytes=c.exportMIDI();assert.deepEqual([...bytes.slice(0,4)],[0x4d,0x54,0x68,0x64]);});
