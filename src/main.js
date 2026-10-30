@@ -222,9 +222,6 @@ async function stopTuning() {
   state.lastTuned = false;
   view.setListening(false);
   syncAudioControls();
-
-// The music lab mounts its own workspace and persistent dock without disturbing tuner state.
-const musicLab = new UkuMusicLab();
   view.resetPitch();
   signalVisualizer.clear();
   renderAnalysis();
@@ -309,3 +306,6 @@ view.setTuningOptions(state.tuningKey);
 renderStrings();
 renderAnalysis();
 syncAudioControls();
+
+// Mount the expanded theory, synthesis and composition workspace.
+const musicLab = new UkuMusicLab();
