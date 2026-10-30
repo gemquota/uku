@@ -46,12 +46,13 @@ export const scaleProfile = (mask) => {
   const consonant=vector[2]+vector[3]+vector[4]; // minor third, major third, fourth/fifth classes
   const dissonant=vector[0]+vector[1]+vector[5]; // semitone, whole tone, tritone
   const entropy=intervals.length ? -intervals.reduce((sum,x)=>sum+(x/12)*Math.log2(x/12),0) : 0;
-  return {mask,notes,intervals,intervalVector:vector,cardinality:notes.length,modes,symmetry,transpositions:modes.length,consonantPairs:consonant,dissonantPairs:dissonant,intervalEntropy:entropy,canonical:canonicalRotation(mask),primeForm:canonicalTnI(mask)};
+  return {mask,notes,intervals,intervalVector:vector,cardinality:notes.length,modes,symmetry,transpositions,consonantPairs:consonant,dissonantPairs:dissonant,intervalEntropy:entropy,canonical:canonicalRotation(mask),primeForm:canonicalTnI(mask)};
 };
 export const allRootedCollections = () => Array.from({length:2048},(_,i)=>((i<<1)|1));
 export const allScaleFamilies = () => {
   const seen=new Set(), families=[];
   for(const mask of allRootedCollections()){
+    if(popcount(mask)<3) continue;
     const canonical=canonicalRotation(mask);
     if(seen.has(canonical)) continue;
     seen.add(canonical);
