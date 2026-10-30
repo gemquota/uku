@@ -1,0 +1,8 @@
+{
+  "name": "uku-acoustic-workstation",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "test": "node --test"
+  }
+}
