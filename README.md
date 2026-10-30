@@ -1,6 +1,6 @@
 # Uku
 
-A mobile-first ukulele companion. Phase 1 is a browser-based tuner with a calm vaporwave/cyberpunk neon interface and a modular foundation for future practice tools.
+A mobile-first ukulele companion with a live tuner, searchable chord library, and tap-tempo metronome in a calm vaporwave/cyberpunk neon interface.
 
 ## Phase 1: tuner
 
@@ -19,14 +19,16 @@ The app is dependency-free and uses browser ES modules:
 - `src/pitch-detector.js` owns the microphone/Web Audio lifecycle and pitch analysis.
 - `src/tunings.js` contains presets, note conversion, and string matching.
 - `src/tuner-view.js` renders and updates the tuner interface.
+- `src/chords.js` generates chord voicings; `src/chords-view.js` provides catalog search, filters, and fingering diagrams.
+- `src/metronome.js` handles tempo, tap-tempo, scheduled audio clicks, and visual beats.
 - `index.html` is the app shell; `styles.css` owns the responsive visual system.
 
-Add future tools as independent modules and connect them through the app shell, rather than coupling them to microphone analysis. The Chords and Rhythm navigation entries are reserved extension points, not implemented features.
+The tuner, chord library, and rhythm tools are independent browser modules connected through the app shell. The chord catalog is generated from twelve roots and nine qualities, with four-string fingerings and diagram labels; the metronome schedules clicks with Web Audio and syncs its visual beat display.
 
 ## Roadmap
 
 - **Phase 1 — Core tuner:** responsive app shell, live tuner, alternate presets, chromatic mode, accessible tuning feedback. Complete.
-- **Phase 2 — Chords and rhythm:** add the user-prioritized chord library and metronome as separately selectable companion modules. Confirm chord content, rhythm controls, and visual details before implementation.
+- **Phase 2 — Chords and rhythm:** searchable 108-entry chord catalog with fingering diagrams and a tempo/tap-tempo metronome with optional audio and visual beat. Complete.
 - **Later phases — To be defined:** refine the core roadmap based on player feedback before taking on additional practice tools.
 
 ## Run locally
@@ -37,7 +39,7 @@ Serve the project root over HTTP (microphone access is restricted on insecure or
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000> and allow microphone access.
+Then open <http://localhost:8000>. Allow microphone access to tune; the metronome audio starts after you press its start button.
 
 ## Deploy to GitHub Pages
 

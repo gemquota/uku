@@ -36,12 +36,12 @@
         </section>
 
         <nav class="module-nav" aria-label="Uku tools">
-          <a class="module-link active" href="#tuner" aria-current="page"><span class="module-glyph">⌁</span> Tuner</a>
-          <span class="module-link upcoming" aria-disabled="true"><span class="module-glyph">♧</span> Chords <span class="soon-tag">SOON</span></span>
-          <span class="module-link upcoming" aria-disabled="true"><span class="module-glyph">◷</span> Rhythm <span class="soon-tag">SOON</span></span>
+          <button class="module-link active" type="button" data-module="tuner" aria-pressed="true"><span class="module-glyph">⌁</span> Tuner</button>
+          <button class="module-link" type="button" data-module="chords" aria-pressed="false"><span class="module-glyph">♧</span> Chords</button>
+          <button class="module-link" type="button" data-module="rhythm" aria-pressed="false"><span class="module-glyph">◷</span> Rhythm</button>
         </nav>
 
-        <section class="tuner-card" id="tuner" aria-label="Ukulele tuner">
+        <section class="tuner-card module-panel" id="tuner" data-panel="tuner" aria-label="Ukulele tuner">
           <div class="card-topline">
             <div class="listening-state" id="listening-state" aria-live="polite">
               <span class="state-dot"></span>
@@ -89,7 +89,45 @@
           </div>
         </section>
 
-        <section class="tip-row" aria-label="Tuning tip">
+        <section class="tool-panel module-panel" id="chords-panel" data-panel="chords" aria-labelledby="chords-heading" hidden>
+          <div class="tool-heading">
+            <p class="eyebrow"><span class="eyebrow-line"></span> FIND YOUR SHAPE</p>
+            <h2 id="chords-heading">Chord <span>library.</span></h2>
+            <p>Explore ukulele voicings, one string at a time.</p>
+          </div>
+          <div class="chord-controls">
+            <label class="search-wrap"><span class="sr-only">Search chords</span><input id="chord-search" type="search" placeholder="Search chords or notes" autocomplete="off" /></label>
+            <label><span class="sr-only">Filter by root note</span><select id="chord-root-filter" aria-label="Filter by root note"></select></label>
+            <label><span class="sr-only">Filter by chord quality</span><select id="chord-quality-filter" aria-label="Filter by chord quality"></select></label>
+          </div>
+          <div class="chord-layout">
+            <div class="chord-list" id="chord-list" role="group" aria-label="Chord results"></div>
+            <section class="chord-detail" id="chord-detail" aria-live="polite" aria-label="Selected chord fingering"></section>
+          </div>
+        </section>
+
+        <section class="tool-panel module-panel" id="rhythm-panel" data-panel="rhythm" aria-labelledby="rhythm-heading" hidden>
+          <div class="tool-heading">
+            <p class="eyebrow"><span class="eyebrow-line"></span> FIND YOUR GROOVE</p>
+            <h2 id="rhythm-heading">Keep the <span>pulse.</span></h2>
+            <p>A steady beat makes room for the music.</p>
+          </div>
+          <div class="metronome-card">
+            <div class="tempo-readout"><span id="tempo-value">96</span><span>BPM</span></div>
+            <label class="tempo-slider-label" for="tempo-slider">TEMPO <span>40–220 BPM</span></label>
+            <input id="tempo-slider" type="range" min="40" max="220" value="96" aria-label="Tempo in beats per minute" />
+            <div class="beat-display" aria-label="Four beat visual pulse"><span class="beat-dot"></span><span class="beat-dot"></span><span class="beat-dot"></span><span class="beat-dot"></span></div>
+            <p class="beat-count" id="beat-count" aria-live="polite">READY</p>
+            <div class="metronome-controls">
+              <button class="mic-button" id="metronome-toggle" type="button" aria-pressed="false">Start metronome</button>
+              <button class="secondary-button" id="tap-tempo" type="button">Tap tempo</button>
+              <button class="sound-toggle" id="metronome-sound" type="button" aria-pressed="true">Sound on</button>
+            </div>
+            <p class="tempo-hint" id="tempo-hint" aria-live="polite">Set a tempo, then start the beat.</p>
+          </div>
+        </section>
+
+        <section class="tip-row module-panel" data-panel="tuner" aria-label="Tuning tip">
           <span class="tip-icon" aria-hidden="true">✳</span>
           <p><strong>Little tip</strong> — pluck one string at a time, then let it ring.</p>
         </section>

@@ -1,8 +1,14 @@
 import { findNearestString, frequencyToNote, tunings } from './tunings.js';
 import { PitchDetector } from './pitch-detector.js';
 import { TunerView } from './tuner-view.js';
+import { ChordsView } from './chords-view.js';
+import { Metronome } from './metronome.js';
 
 const view = new TunerView();
+const chordsView = new ChordsView();
+const metronome = new Metronome();
+const moduleButtons = [...document.querySelectorAll('[data-module]')];
+const modulePanels = [...document.querySelectorAll('[data-panel]')];
 const state = {
   tuningKey: 'standard',
   selectedIndex: null,
@@ -13,6 +19,20 @@ const state = {
   audioContext: null,
 };
 let detector = null;
+
+function selectModule(moduleName) {
+  moduleButtons.forEach((button) => {
+    const active = button.dataset.module === moduleName;
+    button.classList.toggle('active', active);
+    button.setAttribute('aria-pressed', String(active));
+  });
+  modulePanels.forEach((panel) => {
+    panel.hidden = panel.dataset.panel !== moduleName;
+  });
+  if (moduleName !== 'tuner' && state.isListening) void stopTuning();
+}
+
+moduleButtons.forEach((button) => button.addEventListener('click', () => selectModule(button.dataset.module)));
 
 function getStrings() {
   return tunings[state.tuningKey].strings;

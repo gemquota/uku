@@ -47,7 +47,71 @@ h1 { margin: 0; color: #f1edf9; font: 500 clamp(31px, 7vw, 43px)/1.13 var(--disp
 h1 > span { color: var(--purple); text-shadow: 0 0 32px rgba(188,168,255,.22); }
 .intro-copy { margin: 10px 0 0; color: var(--muted); font-size: 13px; }
 .module-nav { display: flex; justify-content: center; gap: 5px; margin: 10px auto 17px; padding: 4px; border: 1px solid rgba(255,255,255,.065); border-radius: 11px; background: rgba(255,255,255,.018); }
-.module-link { position: relative; display: flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 13px; border: 1px solid transparent; border-radius: 8px; color: #858195; font-size: 11px; white-space: nowrap; }
+.module-link { position: relative; display: flex; align-items: center; gap: 7px; min-height: 34px; padding: 0 13px; border: 1px solid transparent; border-radius: 8px; background: transparent; color: #858195; cursor: pointer; font-size: 11px; white-space: nowrap; transition: border-color .16s, background .16s, color .16s; }
+.module-link:hover:not(.active) { border-color: rgba(188,168,255,.13); background: rgba(188,168,255,.04); color: #c2b9d8; }
+.module-link.active { border-color: rgba(188,168,255,.17); background: rgba(188,168,255,.095); color: #d3c5ff; }
+.module-panel[hidden] { display: none !important; }
+.tool-panel { margin: 0 0 18px; }
+.tool-heading { padding: 27px 0 19px; text-align: center; }
+.tool-heading .eyebrow { margin-bottom: 10px; }
+.tool-heading h2 { margin: 0; color: #f1edf9; font: 500 clamp(29px, 6vw, 38px)/1.12 var(--display); letter-spacing: -1.5px; }
+.tool-heading h2 span { color: var(--purple); }
+.tool-heading > p:last-child { margin: 9px 0 0; color: var(--muted); font-size: 12px; }
+.chord-controls { display: grid; grid-template-columns: minmax(150px, 1fr) auto auto; gap: 8px; margin: 0 0 12px; }
+.chord-controls input, .chord-controls select { width: 100%; min-height: 38px; padding: 0 11px; border: 1px solid rgba(255,255,255,.09); border-radius: 8px; background: #1b1a29; color: #cbc6d8; font-size: 11px; }
+.chord-controls input::placeholder { color: #797588; }
+.chord-layout { display: grid; grid-template-columns: minmax(135px, .72fr) minmax(0, 1.28fr); gap: 12px; align-items: start; }
+.chord-list, .chord-detail, .metronome-card { border: 1px solid var(--panel-line); border-radius: 14px; background: linear-gradient(145deg, rgba(26,25,42,.96), var(--panel) 56%, rgba(20,23,35,.96)); box-shadow: 0 15px 48px rgba(0,0,0,.18); }
+.chord-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 5px; max-height: 465px; overflow: auto; padding: 8px; }
+.chord-result { display: flex; flex-direction: column; align-items: flex-start; gap: 2px; min-width: 0; padding: 8px; border: 1px solid transparent; border-radius: 7px; background: transparent; color: #c6bfd5; cursor: pointer; text-align: left; }
+.chord-result:hover { background: rgba(188,168,255,.06); }
+.chord-result.selected { border-color: rgba(188,168,255,.32); background: rgba(188,168,255,.1); color: #eee8ff; }
+.chord-result-name { font: 600 14px var(--display); }
+.chord-result-type { overflow: hidden; max-width: 100%; color: #858094; font-size: 8px; text-overflow: ellipsis; white-space: nowrap; }
+.chord-detail { min-height: 294px; padding: 19px; }
+.chord-detail-head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; }
+.chord-detail-head .eyebrow { justify-content: flex-start; margin: 0 0 5px; font-size: 8px; }
+.chord-detail-head h3 { margin: 0; color: #f2eff8; font: 500 34px/1 var(--display); letter-spacing: -1px; }
+.chord-subtitle { margin: 5px 0 0; color: var(--muted); font-size: 11px; }
+.chord-badge { padding: 5px 7px; border: 1px solid rgba(131,232,226,.19); border-radius: 6px; color: var(--cyan); font: 8px var(--mono); white-space: nowrap; }
+.diagram-wrap { max-width: 265px; margin: 22px auto 15px; padding-left: 23px; }
+.diagram-labels { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0 0 5px; color: #aaa6bb; font: 10px var(--mono); text-align: center; }
+.fretboard { position: relative; height: 96px; margin: 0 5px; background: repeating-linear-gradient(to bottom, transparent 0, transparent 23px, rgba(188,168,255,.38) 23px, rgba(188,168,255,.38) 24px); border-top: 2px solid rgba(224,218,240,.68); }
+.fretboard::before { position: absolute; inset: 0; background: repeating-linear-gradient(to right, transparent 0, transparent calc(33.333% - .5px), rgba(203,197,220,.31) calc(33.333% - .5px), rgba(203,197,220,.31) calc(33.333% + .5px)); content: ''; }
+.fret-number { position: absolute; top: 5px; left: -24px; color: #827d91; font: 8px var(--mono); }
+.fret-number.second { top: 29px; }.fret-number.third { top: 53px; }.fret-number.fourth { top: 77px; }
+.fret-dot { position: absolute; z-index: 1; top: calc(var(--fret) * 24px + 12px); left: calc(var(--string) * 33.333%); display: grid; width: 18px; height: 18px; transform: translate(-50%,-50%); place-items: center; border: 1px solid rgba(205,190,255,.75); border-radius: 50%; background: #9b82dc; color: #171420; box-shadow: 0 0 13px rgba(188,168,255,.3); font: 600 9px var(--mono); }
+.open-marker { position: absolute; z-index: 1; top: -15px; left: calc(var(--string) * 33.333%); transform: translateX(-50%); color: var(--cyan); font: 13px var(--mono); }
+.finger-legend { display: grid; grid-template-columns: repeat(2, 1fr); gap: 5px 10px; margin-top: 13px; color: #928da2; font-size: 9px; }
+.finger-legend b { color: #c9c1dc; font-family: var(--mono); }
+.chord-notes { display: flex; align-items: center; gap: 9px; padding-top: 10px; border-top: 1px solid rgba(255,255,255,.055); }
+.chord-notes > span { color: #858094; font: 8px var(--mono); letter-spacing: .8px; }
+.note-chips { display: flex; gap: 5px; }
+.note-chips b { display: grid; width: 23px; height: 23px; place-items: center; border: 1px solid rgba(188,168,255,.19); border-radius: 50%; background: rgba(188,168,255,.06); color: #d8ccff; font: 9px var(--mono); }
+.empty-chords { color: var(--muted); font-size: 12px; }
+.metronome-card { max-width: 510px; margin: 0 auto; padding: 26px clamp(18px, 6vw, 42px) 22px; text-align: center; }
+.tempo-readout { display: flex; justify-content: center; align-items: baseline; gap: 8px; color: var(--purple); }
+.tempo-readout span:first-child { font: 500 clamp(65px, 14vw, 92px)/1 var(--display); letter-spacing: -5px; text-shadow: 0 0 35px rgba(188,168,255,.18); }
+.tempo-readout span:last-child { color: #918ba5; font: 10px var(--mono); letter-spacing: 1px; }
+.tempo-slider-label { display: flex; justify-content: space-between; margin: 21px 0 8px; color: #9b96aa; font: 8px var(--mono); letter-spacing: .8px; }
+.tempo-slider-label span { color: #706d80; }
+#tempo-slider { width: 100%; height: 20px; margin: 0; appearance: none; background: transparent; cursor: pointer; }
+#tempo-slider::-webkit-slider-runnable-track { height: 4px; border-radius: 8px; background: linear-gradient(90deg,rgba(188,168,255,.82),rgba(131,232,226,.7)); }
+#tempo-slider::-moz-range-track { height: 4px; border-radius: 8px; background: linear-gradient(90deg,rgba(188,168,255,.82),rgba(131,232,226,.7)); }
+#tempo-slider::-webkit-slider-thumb { width: 15px; height: 15px; margin-top: -5.5px; appearance: none; border: 2px solid #d7cbff; border-radius: 50%; background: #7462ac; box-shadow: 0 0 12px rgba(188,168,255,.55); }
+#tempo-slider::-moz-range-thumb { width: 12px; height: 12px; border: 2px solid #d7cbff; border-radius: 50%; background: #7462ac; box-shadow: 0 0 12px rgba(188,168,255,.55); }
+.beat-display { display: flex; justify-content: center; gap: clamp(16px, 6vw, 30px); margin: 30px 0 11px; }
+.beat-dot { width: 15px; height: 15px; border: 1px solid rgba(188,168,255,.32); border-radius: 50%; background: rgba(188,168,255,.07); transition: transform .08s, background .08s, box-shadow .08s; }
+.beat-dot:first-child { border-color: rgba(131,232,226,.42); }
+.beat-dot.active { transform: scale(1.35); border-color: var(--cyan); background: var(--cyan); box-shadow: 0 0 20px rgba(131,232,226,.56); }
+.beat-dot:first-child.active { border-color: var(--pink); background: var(--pink); box-shadow: 0 0 20px rgba(241,164,216,.56); }
+.beat-count { min-height: 12px; color: #8f8a9f; font: 8px var(--mono); letter-spacing: 1px; }
+.metronome-controls { display: flex; flex-wrap: wrap; justify-content: center; align-items: center; gap: 9px; margin-top: 22px; }
+.metronome-controls .mic-button { width: auto; min-width: 160px; padding: 0 17px; }
+.secondary-button { min-height: 40px; padding: 0 15px; border: 1px solid rgba(188,168,255,.24); border-radius: 9px; background: rgba(188,168,255,.07); color: #d8ccff; cursor: pointer; font-size: 11px; }
+.secondary-button:hover { border-color: rgba(188,168,255,.5); background: rgba(188,168,255,.13); }
+.tempo-hint { min-height: 14px; margin: 13px 0 0; color: #858094; font-size: 10px; }
+
 .module-link.active { border-color: rgba(188,168,255,.17); background: rgba(188,168,255,.095); color: #d3c5ff; }
 .module-glyph { color: inherit; font-size: 16px; }
 .module-link.upcoming { color: #706d80; }
@@ -112,6 +176,16 @@ h1 > span { color: var(--purple); text-shadow: 0 0 32px rgba(188,168,255,.22); }
 
 @media (min-width: 700px) { .intro { padding-top: 48px; } .tuner-card { padding-right: 31px; padding-left: 31px; } }
 @media (max-width: 480px) {
+  .chord-controls { grid-template-columns: 1fr 1fr; }
+  .chord-controls .search-wrap { grid-column: 1 / -1; }
+  .chord-layout { grid-template-columns: 1fr; }
+  .chord-list { grid-template-columns: repeat(4, minmax(0, 1fr)); max-height: 180px; }
+  .chord-result { align-items: center; text-align: center; padding: 7px 4px; }
+  .chord-result-name { font-size: 13px; }
+  .chord-detail { min-height: 0; padding: 16px; }
+  .metronome-card { padding-top: 21px; }
+  .metronome-controls .mic-button { min-width: 0; }
+
   .app-shell { width: min(100% - 28px, 420px); }
   .topbar { padding-top: 17px; }
   .topbar-right { gap: 10px; }
@@ -133,5 +207,5 @@ h1 > span { color: var(--purple); text-shadow: 0 0 32px rgba(188,168,255,.22); }
   .tip-row { font-size: 10px; }
   .footer { gap: 7px; font-size: 6px; letter-spacing: .65px; }
 }
-@media (max-width: 360px) { .live-label { display: none; } .module-link { padding: 0 6px; } .soon-tag { letter-spacing: 0; } }
+@media (max-width: 360px) { .live-label { display: none; } .chord-list { grid-template-columns: repeat(3, minmax(0, 1fr)); } .module-link { padding: 0 6px; } .soon-tag { letter-spacing: 0; } }
 @media (prefers-reduced-motion: reduce) { *, *::before, *::after { scroll-behavior: auto !important; animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; } }
