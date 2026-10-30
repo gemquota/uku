@@ -43,7 +43,7 @@ export const popcount = (n) => { let c=0; while(n){n&=n-1;c++;} return c; };
 export const scaleProfile = (mask) => {
   const notes=notesOf(mask), intervals=intervalSequence(notes), vector=intervalVector(notes);
   const modes=distinctModes(mask), symmetry=symmetryOrder(mask);
-  const consonant=vector[2]+vector[4]+vector[6-1]; // minor third, fourth, fifth classes
+  const consonant=vector[2]+vector[3]+vector[4]; // minor third, major third, fourth/fifth classes
   const dissonant=vector[0]+vector[1]+vector[5]; // semitone, whole tone, tritone
   const entropy=intervals.length ? -intervals.reduce((sum,x)=>sum+(x/12)*Math.log2(x/12),0) : 0;
   return {mask,notes,intervals,intervalVector:vector,cardinality:notes.length,modes,symmetry,transpositions:modes.length,consonantPairs:consonant,dissonantPairs:dissonant,intervalEntropy:entropy,canonical:canonicalRotation(mask),primeForm:canonicalTnI(mask)};
