@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PitchDetector } from '../src/pitch-detector.js';
 import { SCALE_DATABASE, scaleNotes, scaleMidi } from '../src/scale-atlas.js';
+import { AudioTransport } from '../src/audio-transport.js';
 
 function tone(frequency, sampleRate = 48000, length = 4096) {
   const samples = new Float32Array(length);
@@ -52,4 +53,16 @@ test('scale MIDI output preserves intervals and spans the octave boundary', () =
   const major = SCALE_DATABASE.find((scale) => scale.collection === 'major' && scale.name === 'Ionian');
   const midi = scaleMidi(major, 0, 4);
   assert.deepEqual(midi, [60, 62, 64, 65, 67, 69, 71]);
+});
+
+test('metronome and sequencer share the same quantised transport grid', () => {
+  const transport = new AudioTransport();
+  transport.context = { currentTime: 1.02 };
+  transport.startTime = 0;
+  transport.bpm = 120;
+  assert.equal(transport.nextGridTime(4), 1.125);
+  transport.setTempo(60);
+  assert.equal(transport.nextGridTime(4), 1.25);
+  transport.setTempo(999);
+  assert.equal(transport.bpm, 220);
 });
