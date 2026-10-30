@@ -5,7 +5,7 @@ export class SynthesisEngine {
     this.context=new AC();
     this.master=this.context.createGain(); this.master.gain.value=.72;
     this.analyser=this.context.createAnalyser(); this.analyser.fftSize=8192; this.analyser.smoothingTimeConstant=.72;
-    this.master.connect(this.analyser); this.analyser.connect(this.context.destination);
+    this.master.connect(this.analyser); this.analyser.connect(this.context.destination);\n    this.captureDestination=this.context.createMediaStreamDestination();this.master.connect(this.captureDestination);
     this.active=new Map(); this.instrument="piano"; this.volume=.7; this.waveform="triangle";
     this.settings={attack:.012,decay:.18,sustain:.58,release:.24,filter:5200,detune:0};
   }
