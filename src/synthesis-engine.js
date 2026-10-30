@@ -15,7 +15,7 @@ export class SynthesisEngine {
   setEnvelope(patch){this.settings={...this.settings,...patch};}
   frequency(midi){return 440*2**((midi-69)/12);}
   play(midi,velocity=.78,when=this.context.currentTime,duration=null){
-    const key=String(midi),ctx=this.context,now=Math.max(when,ctx.currentTime);
+    const key=String(midi),ctx=this.context,now=Math.max(when,ctx.currentTime);if(this.active.has(key))this.release(midi,now);
     const voiceGain=ctx.createGain(),filter=ctx.createBiquadFilter();
     filter.type="lowpass";filter.frequency.value=this.settings.filter;
     const osc=ctx.createOscillator(),sub=ctx.createOscillator();
