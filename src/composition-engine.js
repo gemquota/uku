@@ -23,7 +23,7 @@ export class CompositionEngine {
     events.sort((a,b)=>a.tick-b.tick||Number(a.on)-Number(b.on));
     const bytes=[];const push=(...v)=>bytes.push(...v);const vlq=value=>{let buffer=value&127;while((value>>=7)){buffer<<=8;buffer|=(value&127)|128;}while(true){push(buffer&255);if(buffer&128)buffer>>=8;else break;}};
     push(0x4d,0x54,0x68,0x64,0,0,0,6,0,0,0,1,1,0xe0);
-    const data=[];const out=(...v)=>data.push(...v);let last=0;
+    const data=[];const out=(...v)=>data.push(...v);let last=0;const micros=Math.round(60000000/Math.max(1,this.active.bpm||120));out(0,0xff,0x51,0x03,(micros>>16)&255,(micros>>8)&255,micros&255);
     for(const e of events){const delta=Math.max(0,e.tick-last);last=e.tick;let b=delta,buf=b&127;while((b>>=7)){buf<<=8;buf|=(b&127)|128;}while(true){out(buf&255);if(buf&128)buf>>=8;else break;}out(e.on?0x90:0x80,e.n.midi,e.on?Math.round(e.n.velocity*110):0);}
     out(0,0xff,0x2f,0);push(0x4d,0x54,0x72,0x6b,(data.length>>>24)&255,(data.length>>>16)&255,(data.length>>>8)&255,data.length&255,...data);
     return new Uint8Array(bytes);
