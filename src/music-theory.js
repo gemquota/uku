@@ -27,7 +27,7 @@ export const intervalVector = (notesOrMask) => {
   }
   return v;
 };
-export const canonicalRotation = (mask) => Math.min(...Array.from({length:12},(_,i)=>rotateMask(mask,i)));
+export const canonicalRotation = (mask) => Math.min(...distinctModes(mask));
 export const canonicalTnI = (mask) => Math.min(canonicalRotation(mask),canonicalRotation(invertMask(mask)));
 export const distinctModes = (mask) => { const notes=notesOf(mask); const modes=new Map(); for(const root of notes){const mode=maskOf(notes.map(n=>mod(n-root)));modes.set(mode,mode);} return [...modes.values()]; };
 export const symmetryOrder = (mask) => Array.from({length:12},(_,i)=>i).filter(i=>rotateMask(mask,i)===mask).length;
