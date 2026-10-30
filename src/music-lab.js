@@ -8,7 +8,7 @@ const el=(tag,attrs={},children=[])=>{const n=document.createElement(tag);for(co
 const esc=(s)=>String(s).replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
 export class UkuMusicLab {
   constructor(){
-    this.families=allScaleFamilies();this.selectedMask=maskOf(SCALE_TEMPLATES.Major);this.compareMask=maskOf(SCALE_TEMPLATES["Natural minor"]);this.root=0;this.modeIndex=0;this.filter="";this.cardinality="all";this.engine=null;this.composition=new CompositionEngine();this.graph=new MusicalKnowledgeGraph();this.visuals=new MusicVisualizations();this.micStream=null;this.micContext=null;this.micAnalyser=null;this.worker=null;this.analysisFrame=null;this.lastNotes=[];this.dockLocked=false;this.dockCollapsed=false;this.saved=[];
+    this.families=allScaleFamilies();this.selectedMask=maskOf(SCALE_TEMPLATES.Major);this.modeVariants=scaleProfile(this.selectedMask).modes;this.heldKeys=new Set();this.compareMask=maskOf(SCALE_TEMPLATES["Natural minor"]);this.root=0;this.modeIndex=0;this.filter="";this.cardinality="all";this.engine=null;this.composition=new CompositionEngine();this.graph=new MusicalKnowledgeGraph();this.visuals=new MusicVisualizations();this.micStream=null;this.micContext=null;this.micAnalyser=null;this.worker=null;this.analysisFrame=null;this.lastNotes=[];this.dockLocked=false;this.dockCollapsed=false;this.saved=[];
     this.mount();this.renderAll();this.restoreDock();
   }
   mount(){
@@ -25,7 +25,7 @@ export class UkuMusicLab {
     this.panel.querySelector("#uku-scale-search").addEventListener("input",e=>{this.filter=e.target.value;this.renderTable();});
     this.panel.querySelector("#uku-cardinality").addEventListener("change",e=>{this.cardinality=e.target.value;this.renderTable();});
     this.panel.querySelector("#uku-family-list").addEventListener("click",e=>{const item=e.target.closest("[data-mask]");if(item)this.selectScale(Number(item.dataset.mask));});
-    this.panel.querySelector("#uku-note-grid").addEventListener("click",e=>{const b=e.target.closest("[data-note]");if(!b)return;const bit=1<<Number(b.dataset.note);this.selectedMask^=bit;this.selectedMask|=1;this.renderAll();});
+    this.panel.querySelector("#uku-note-grid").addEventListener("click",e=>{const b=e.target.closest("[data-note]");if(!b)return;const bit=1<<Number(b.dataset.note);this.selectedMask^=bit;this.selectedMask|=1;this.modeVariants=null;this.modeIndex=0;this.renderAll();});
     this.panel.querySelector("#uku-audition").addEventListener("click",()=>this.auditionScale());
     this.panel.querySelector("#uku-mutate").addEventListener("click",()=>this.mutateScale());
     this.panel.querySelector("#uku-compare").addEventListener("click",()=>this.compareSelected());
@@ -69,7 +69,7 @@ export class UkuMusicLab {
     this.dock.querySelector("#uku-volume").addEventListener("input",e=>this.engine?.setVolume(e.target.value));
     this.dock.querySelector("#uku-octave").addEventListener("change",()=>this.renderKeyboard());
     this.dock.querySelector("#uku-dock-position").addEventListener("change",e=>{this.setDockPosition(e.target.value);this.persistDock();});
-    this.dock.querySelector("#uku-keyboard").addEventListener("pointerdown",e=>{const key=e.target.closest("[data-midi]");if(!key)return;e.preventDefault();key.setPointerCapture?.(e.pointerId);const midi=Number(key.dataset.midi);this.ensureEngine().then(()=>{this.engine.play(midi);key.classList.add("pressed");});});
+    this.dock.querySelector("#uku-keyboard").addEventListener("pointerdown",e=>{const key=e.target.closest("[data-midi]");if(!key)return;e.preventDefault();key.setPointerCapture?.(e.pointerId);const midi=Number(key.dataset.midi);this.heldKeys.add(midi);this.ensureEngine().then(()=>{if(this.heldKeys.has(midi)){this.engine.play(midi);key.classList.add("pressed");}});});
     this.dock.querySelector("#uku-keyboard").addEventListener("pointerup",e=>this.releaseKey(e));
     this.dock.querySelector("#uku-keyboard").addEventListener("pointerleave",e=>this.releaseKey(e));
     this.dock.querySelector("#uku-synth-stop").addEventListener("click",()=>this.engine?.stopAll());
@@ -77,15 +77,15 @@ export class UkuMusicLab {
     this.dock.querySelector("#uku-dock-lock").addEventListener("click",e=>{this.dockLocked=!this.dockLocked;e.currentTarget.textContent=this.dockLocked?"LOCKED":"UNLOCKED";e.currentTarget.setAttribute("aria-pressed",String(this.dockLocked));this.dock.querySelector("#uku-dock-position").disabled=this.dockLocked;this.persistDock();});
     this.renderKeyboard();
   }
-  releaseKey(e){const key=e.target.closest("[data-midi]");if(key){this.engine?.release(Number(key.dataset.midi));key.classList.remove("pressed");}}
+  releaseKey(e){const key=e.target.closest("[data-midi]");if(key){const midi=Number(key.dataset.midi);this.heldKeys.delete(midi);this.engine?.release(midi);key.classList.remove("pressed");}}
   async ensureEngine(){if(!this.engine){this.engine=new SynthesisEngine();this.startAnalysis(this.engine.analyser,"SYNTH");}await this.engine.resume();return this.engine;}
   async playShort(midi){const engine=await this.ensureEngine();engine.play(midi,.72,engine.context.currentTime,.7);}
   renderKeyboard(){const root=this.dock.querySelector("#uku-keyboard"),octave=Number(this.dock.querySelector("#uku-octave").value);root.replaceChildren();let white=0;const keys=[];for(let i=0;i<24;i++){const midi=12*(octave+1)+i,pitch=mod(midi),black=[1,3,6,8,10].includes(pitch);if(!black)white++;keys.push({midi,pitch,black,whiteIndex:white});}for(const k of keys){const button=el("button",{type:"button",class:`uku-key ${k.black?"black":""}`,"data-midi":k.midi,"aria-label":noteName(k.midi)},[el("span",{text:k.black?"":noteName(k.midi)})]);if(k.black)button.style.left=`${((k.whiteIndex-.5)/14)*100}%`;root.append(button);}}
   async auditionScale(){const engine=await this.ensureEngine();const notes=notesOf(this.selectedMask);notes.forEach((n,i)=>engine.play(60+n,.58,engine.context.currentTime+i*.19,.62));}
   selectWorkspace(name){document.querySelectorAll("[data-module]").forEach(b=>{const active=b.dataset.module===name;b.classList.toggle("active",active);b.setAttribute("aria-pressed",String(active));});document.querySelectorAll("[data-panel]").forEach(p=>p.hidden=p.dataset.panel!==name);this.panel.hidden=false;requestAnimationFrame(()=>this.renderAll());}
   selectScale(mask){this.selectedMask=mask|1;this.modeIndex=0;this.renderAll();}
-  rotateMode(direction){const unique=scaleProfile(this.selectedMask).modes;this.modeIndex=mod(this.modeIndex+direction,unique.length);this.selectedMask=unique[this.modeIndex];this.renderAll();}
-  mutateScale(){const notes=notesOf(this.selectedMask);const available=Array.from({length:12},(_,i)=>i).filter(i=>!notes.includes(i));if(available.length){this.selectedMask|=1<<available[0];}else{const removable=notes.filter(n=>n!==0);this.selectedMask&=~(1<<removable.at(-1));}this.renderAll();}
+  rotateMode(direction){if(!this.modeVariants)this.modeVariants=scaleProfile(this.selectedMask).modes;this.modeIndex=mod(this.modeIndex+direction,this.modeVariants.length);this.selectedMask=this.modeVariants[this.modeIndex];this.renderAll();}
+  mutateScale(){const notes=notesOf(this.selectedMask);const available=Array.from({length:12},(_,i)=>i).filter(i=>!notes.includes(i));if(available.length){this.selectedMask|=1<<available[0];}else{const removable=notes.filter(n=>n!==0);this.selectedMask&=~(1<<removable.at(-1));}this.modeVariants=null;this.modeIndex=0;this.renderAll();}
   compareSelected(){const c=compareScales(this.selectedMask,this.compareMask);this.showResult(`<b>STRUCTURAL COMPARISON</b><br>Hamming distance: ${c.hamming} · Jaccard similarity: ${(c.jaccard*100).toFixed(1)}%<br>Shared: ${c.common.map(n=>PITCHES[n]).join(" · ")}<br>Added: ${c.added.map(n=>PITCHES[n]).join(" · ")||"none"}<br>Removed: ${c.removed.map(n=>PITCHES[n]).join(" · ")||"none"}<br>Interval-vector distance: ${c.intervalVectorDistance.toFixed(2)}`);}
   identifyFromNotes(){const result=identifyScales(notesOf(this.selectedMask),6);this.showResult("<b>BEST STRUCTURAL MATCHES</b>"+result.map((p,i)=>`<div>${i+1}. ${notesOf(p.mask).map(n=>PITCHES[n]).join(" ")} · score ${p.score.toFixed(3)} · extra ${p.extra}</div>`).join(""));}
   showResult(html){this.panel.querySelector("#uku-result").innerHTML=html;}
