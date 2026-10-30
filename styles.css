@@ -770,14 +770,14 @@ html, body, .app-shell, main, .module-panel { overscroll-behavior: none; }
 .synth-dock.collapsed .synth-dock-body,.synth-dock.collapsed .synth-edge-controls{display:none}
 .synth-dock.collapsed .synth-dock-header .eyebrow{display:none}
 .synth-dock.collapsed .synth-dock-header strong{font-size:12px}
-.synth-dock[data-pinned="false"]{opacity:.88}
+.synth-dock[data-pinned="false"]{opacity:.88}.synth-dock.tab-hidden{display:none!important}
 @media(min-width:1000px){body:has(#synth-dock[data-edge="right"]:not(.collapsed)) .app-shell{padding-right:340px}body:has(#synth-dock[data-edge="left"]:not(.collapsed)) .app-shell{padding-left:340px}body:has(#synth-dock[data-edge="bottom"]:not(.collapsed)) .app-shell{padding-bottom:230px}}
 #theory-panel[data-mode="atlas"]{grid-template-columns:minmax(0,1fr);grid-template-rows:32px minmax(0,1fr)}
 #theory-panel[data-mode="atlas"]>#scale-atlas-section{display:grid;grid-column:1/-1;grid-row:2;grid-template-rows:auto minmax(0,1fr);min-height:0;margin:0;padding:8px}
 .scale-atlas-toolbar{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(75px,.5fr) minmax(100px,.7fr);gap:8px;margin-bottom:8px}
 .scale-atlas-layout{display:grid;grid-template-columns:minmax(0,1.55fr) minmax(190px,.75fr);gap:9px;min-height:0;overflow:hidden}
-.scale-atlas-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(30px,1fr);gap:4px;min-height:0;overflow:hidden;align-content:stretch}
-.scale-element{display:grid;grid-template-rows:auto auto 1fr auto;min-width:0;min-height:0;padding:4px;overflow:hidden;border:1px solid color-mix(in srgb,var(--accent) 24%,transparent);border-radius:6px;background:color-mix(in srgb,var(--accent) 5%,var(--panel));color:var(--muted-soft);text-align:left;cursor:pointer}
+.scale-atlas-grid{display:grid;grid-template-columns:minmax(65px,.85fr) repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));gap:4px;min-height:0;overflow:hidden;align-content:stretch}
+.scale-family-label{display:flex;align-items:center;min-width:0;padding:3px;color:var(--accent-secondary);font:7px var(--mono);line-height:1.25;overflow:hidden}.scale-element{display:grid;grid-template-rows:auto auto 1fr auto;min-width:0;min-height:0;padding:4px;overflow:hidden;border:1px solid color-mix(in srgb,var(--accent) 24%,transparent);border-radius:6px;background:color-mix(in srgb,var(--accent) 5%,var(--panel));color:var(--muted-soft);text-align:left;cursor:pointer}
 .scale-element:nth-child(7n+2){border-color:color-mix(in srgb,var(--accent-secondary) 34%,transparent)}
 .scale-element:nth-child(7n+3){border-color:color-mix(in srgb,var(--accent-tertiary) 34%,transparent)}
 .scale-element.selected{outline:2px solid var(--accent);background:color-mix(in srgb,var(--accent) 18%,var(--panel))}
@@ -802,8 +802,8 @@ html, body, .app-shell, main, .module-panel { overscroll-behavior: none; }
  .synth-dock:not(.collapsed) .synth-help,.synth-dock:not(.collapsed) .synth-edge-controls{display:none}
  .synth-dock:not(.collapsed) .synth-keyboard{min-height:80px}
  .scale-atlas-layout{grid-template-columns:1fr;grid-template-rows:minmax(0,1fr) auto}
- .scale-atlas-grid{grid-template-columns:repeat(7,minmax(0,1fr));grid-auto-rows:minmax(25px,1fr);gap:2px}
- .scale-element{padding:2px}.scale-element strong{font-size:7px}.scale-element span,.scale-element em{font-size:5px}
+ .scale-atlas-grid{grid-template-columns:minmax(39px,.7fr) repeat(8,minmax(0,1fr));grid-template-rows:repeat(8,minmax(0,1fr));gap:2px}
+ .scale-family-label{font-size:5px;padding:1px}.scale-element{padding:2px}.scale-element strong{font-size:7px}.scale-element span,.scale-element em{font-size:5px}
  .scale-atlas-detail{display:grid;grid-template-columns:1fr 1fr;gap:3px 8px;padding:5px}
  .scale-atlas-detail h3{font-size:12px}.scale-atlas-detail .scale-detail-notes{font-size:8px}.scale-atlas-detail .scale-play{min-height:24px}
 }
