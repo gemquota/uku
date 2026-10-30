@@ -11,3 +11,5 @@ test("recognition ranks a matching collection first",()=>{const found=identifySc
 
 test("major scale has seven distinct modes",()=>{assert.equal(distinctModes(maskOf([0,2,4,5,7,9,11])).length,7);});
 test("periodic-table scale families exclude one- and two-note collections",()=>{assert.equal(allScaleFamilies().length,344);});
+
+test("Gray-code traversal changes one pitch-class bit per step",()=>{const masks=Array.from({length:2048},(_,i)=>(((i^(i>>1))<<1)|1));for(let i=1;i<masks.length;i++)assert.equal((masks[i]^masks[i-1]).toString(2).replace(/0/g,"").length,1);});
