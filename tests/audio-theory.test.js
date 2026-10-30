@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { PitchDetector } from '../src/pitch-detector.js';
-import { SCALE_DATABASE, scaleNotes, scaleMidi } from '../src/scale-atlas.js';
+import { SCALE_DATABASE, scaleNotes, scaleMidi, scaleHarmony } from '../src/scale-atlas.js';
 import { AudioTransport } from '../src/audio-transport.js';
 
 function tone(frequency, sampleRate = 48000, length = 4096) {
@@ -65,4 +65,11 @@ test('metronome and sequencer share the same quantised transport grid', () => {
   assert.equal(transport.nextGridTime(4), 1.25);
   transport.setTempo(999);
   assert.equal(transport.bpm, 220);
+});
+
+test('scale atlas derives diatonic triads from scale degrees', () => {
+  const major = SCALE_DATABASE.find((scale) => scale.collection === 'major' && scale.name === 'Ionian');
+  const harmony = scaleHarmony(major, 0);
+  assert.deepEqual(harmony.map((chord) => chord.quality), ['major', 'minor', 'minor', 'major', 'major', 'minor', 'diminished']);
+  assert.deepEqual(harmony[0].notes, ['C', 'E', 'G']);
 });
