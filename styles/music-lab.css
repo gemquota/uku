@@ -62,3 +62,7 @@ body:has(.uku-synth-dock) main{padding-bottom:125px}
 .uku-synth-dock.dock-right{right:10px;left:auto;top:50%;bottom:auto;transform:translateY(-50%);width:min(390px,calc(100vw - 20px))}
 .uku-synth-dock.dock-float{left:50%;right:auto;bottom:15%;transform:translateX(-50%);width:min(680px,calc(100vw - 28px))}
 .uku-dock-controls select:disabled{opacity:.45;cursor:not-allowed}
+
+.uku-graph-canvas{width:100%;height:116px;display:block;background:rgba(0,0,0,.1);border-radius:7px}
+.uku-graph-results button small{display:block;color:#9992ab;font-size:8px;margin-top:3px}
+.uku-graph-results button:hover{background:rgba(188,168,255,.1);border-radius:5px}
