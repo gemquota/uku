@@ -57,8 +57,8 @@ export class Metronome {
   async start() {
     try {
       await this.ensureAudio();
-      this.running = true;
       const origin = this.transport ? await this.transport.start() : this.audioContext.currentTime + 0.08;
+      this.running = true;
       const beatDuration = 60 / this.bpm;
       const elapsedBeats = Math.max(0, Math.ceil((this.audioContext.currentTime - origin) / beatDuration - 1e-8));
       this.beatNumber = elapsedBeats % 4;
