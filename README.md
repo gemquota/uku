@@ -37,7 +37,7 @@ Serve the project root over HTTP (microphone access is restricted on insecure or
 python3 -m http.server 8000
 ```
 
-Then open <http://localhost:8000>. Allow microphone access to tune; the metronome audio starts after you press its start button.
+Then open <http://localhost:8000>. Allow microphone access to tune, or choose Synthesiser as the analysis input and play the docked keyboard. The metronome and sequencer share a tempo and audio clock. Run `npm test` to execute the pitch-detection, scale-theory, and transport checks.
 
 ## Deploy to GitHub Pages
 
