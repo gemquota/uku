@@ -6,6 +6,7 @@ import { ChordsView } from './chords-view.js';
 import { Metronome } from './metronome.js';
 import { ChordIdentifier } from './chord-identifier.js';
 import { StepSequencer } from './step-sequencer.js';
+import { UkuMusicLab } from './music-lab.js';
 
 const view = new TunerView();
 const signalVisualizer = new SignalVisualizer(document.querySelector('.signal-scopes'));
@@ -221,6 +222,9 @@ async function stopTuning() {
   state.lastTuned = false;
   view.setListening(false);
   syncAudioControls();
+
+// The music lab mounts its own workspace and persistent dock without disturbing tuner state.
+const musicLab = new UkuMusicLab();
   view.resetPitch();
   signalVisualizer.clear();
   renderAnalysis();
