@@ -43,6 +43,8 @@ function selectModule(moduleName) {
   modulePanels.forEach((panel) => {
     panel.hidden = panel.dataset.panel !== moduleName;
   });
+  const synthDock = document.querySelector('#synth-dock');
+  synthDock?.classList.toggle('tab-hidden', synthDock.dataset.pinned !== 'true' && moduleName !== 'studio');
   if (!['tuner', 'analysis'].includes(moduleName) && state.isListening) void stopTuning();
 }
 
@@ -220,7 +222,7 @@ function onSilence() {
   signalVisualizer.setTuning({ frequency: null, activeIndex: null, cents: 0, tuned: false, selectedIndex: state.selectedIndex, confidence: 0, stabilityCents: 0 });
   view.resetPitch();
   targetFrequency.textContent = `TARGET — Hz · A4 = ${state.referenceA4.toFixed(1)} Hz`;
-  view.setStatus('listening', 'LISTENING FOR A STRING');
+  view.setStatus('listening', state.inputSource === 'synth' ? 'LISTENING TO SYNTH OUTPUT' : 'LISTENING FOR A STRING');
 }
 
 async function stopTuning() {
@@ -288,7 +290,8 @@ function toggleMicrophone() {
 view.onStartStop(toggleMicrophone);
 globalMicToggle.addEventListener('click', toggleMicrophone);
 analysisSource.value = loadPreference('uku-analysis-source', 'microphone');
-state.inputSource = analysisSource.value;
+state.inputSource = ['microphone', 'synth'].includes(analysisSource.value) ? analysisSource.value : 'microphone';
+analysisSource.value = state.inputSource;
 analysisSource.addEventListener('change', () => {
   state.inputSource = analysisSource.value;
   savePreference('uku-analysis-source', state.inputSource);
